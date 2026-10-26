@@ -1,0 +1,50 @@
+# Bubu AI V0.1 架构总览
+
+> **状态：planned。** 当前是架构约束，不代表模块已经完成；以实际代码和测试为准。不要为了匹配图示而过早拆十几个包。
+
+## 技术目标
+
+- Desktop-first / Local-first；React + TypeScript + Vite 构建 UI，Electron 承载本地能力。
+- 第一阶段只搭一个 `apps/desktop`，把 Main / Preload / Renderer 的边界做好。Agent Core、File Tools、Shared Contracts 在需求形成时再拆 `packages/`；不为摆架构建空包。
+- 不必在首版启动 NestJS 服务，更不需要 Go 微服务。将来确有独立服务需求时再重审架构。
+
+## 逻辑分层
+
+```text
+React Renderer（可信度低、仅 UI）
+  ├─ Chat + File Cards + Task Timeline + Approval + Mascot
+  └─ window.bubu.*（仅具名 IPC）
+               ↓ IPC（参数校验、权限判定）
+Electron Main / 本地服务（可信边界）
+  ├─ Conversation Service / Run Store
+  ├─ Agent Runtime ── Model Adapter ── 用户选定的本地/云端 Provider
+  ├─ Tool Registry ── File Executor ── 授权目录
+  ├─ Permission Broker / Operation Plan / Approval
+  └─ Local Persistence（初期可使用 SQLite）
+```
+
+## 进程规则
+
+1. **Renderer**：不使用 Node `fs`，不直接操作桌面文件，不持有解密的 API Key。状态来源为结构化事件。
+2. **Preload**：只暴露按领域命名的最小 API，如 `models.testConnection`、`files.pickScope`、`runs.subscribe`、`runs.approvePlan`。**禁止**通用任意路径读写、执行 Shell 或暴露完整 `ipcRenderer`。
+3. **Main**：负责校验 IPC sender、输入 Schema、目录能力令牌、授权和外发检查；对涉及 IO 的工具返回可审查结果。
+4. **Agent Runtime**：仅负责对话上下文、模型工具调用、任务进度、取消；不能越过执行器权限直接读写磁盘。
+5. **File Executor**：确定性 Node.js 文件操作；文件分类按规则生成计划，不让模型逐文件猜测；执行前重新检查真实状态。
+
+## 领域对象（草案）
+
+- `Conversation` / `ChatMessage`
+- `ProviderProfile` / `ModelCapability`
+- `WorkspaceScope`（用户授权目录+权限级别）
+- `AgentRun` / `RunEvent`
+- `FilePlan`（不可变版本、digest、文件操作列表）
+- `Approval`（绑定计划版本）
+- `OperationResult`（实际成功、跳过、失败记录）
+
+## ADR 准入门槛
+
+只有长期影响多个模块、存在可讨论替代方案、已经决定实施的技术选择才需要额外 ADR。普通 Issue、Bug 和 UI 微调只在 PR 说明。不为“显得高级”创建架构文档。
+
+## 首批验证重点
+
+Renderer 无法越过 IPC 访问文件；未授权目录默认拒绝；写入无当前计划审批时失败关闭；取消不伪造回滚；云端模型读本地正文需要明确告知；所有工具结果都来自真实执行器。

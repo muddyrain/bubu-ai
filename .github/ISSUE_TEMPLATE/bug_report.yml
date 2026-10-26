@@ -1,0 +1,31 @@
+name: Bug 修复
+description: 记录能够复现的错误和期望行为
+labels: []
+body:
+  - type: textarea
+    id: observed
+    attributes:
+      label: 实际现象
+      description: 出了什么错？
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 尽可能使用可公开的测试文件，不提交真实私人资料
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 环境、日志、截图与验收标准
+      description: 使用脱敏信息，明确修复完成如何验证
+    validations:
+      required: false

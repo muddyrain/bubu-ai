@@ -1,0 +1,44 @@
+name: 功能开发
+description: 对应一次可验收的 Bubu AI 功能任务
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issue 是任务唯一来源。临时计划、执行记录和 Code Review 请放在此 Issue / PR，不要创建 A01/B01 等任务文档。
+  - type: textarea
+    id: goal
+    attributes:
+      label: 目标与用户价值
+      description: 用户要完成什么，为什么需要？
+      placeholder: 用户可以在授权目录中搜索包含某个关键词的 Markdown 文件。
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 本次范围
+      description: 具体必须交付的行为
+    validations:
+      required: true
+  - type: textarea
+    id: excluded
+    attributes:
+      label: 非本次范围
+      description: 说明不做什么，防止 Codex 顺手扩展
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 使用 Given/When/Then 或可复现测试描述
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: 风险、依赖与参考文档
+      description: 包括权限、数据外发、设计稿或依赖 Issue
+    validations:
+      required: false

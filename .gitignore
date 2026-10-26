@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+out/
+coverage/
+.turbo/
+.cache/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+!.env.example
+.local-notes/
+.ai-scratch/
+.codex-tmp/
+*.local.md
