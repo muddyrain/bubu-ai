@@ -1,0 +1,44 @@
+.artwork {
+  inline-size: 100%;
+  max-inline-size: 320px;
+  aspect-ratio: 8 / 5;
+  min-inline-size: 0;
+}
+
+.artwork[data-size='compact'] {
+  max-inline-size: 100px;
+  aspect-ratio: 4 / 3;
+}
+
+.image {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+.placeholder {
+  block-size: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bubu-space-2);
+  padding: var(--bubu-space-2);
+  border: 1px dashed var(--bubu-accent);
+  border-radius: var(--bubu-radius-card);
+  background: var(--bubu-surface);
+  color: var(--bubu-text);
+  font-size: var(--bubu-font-small);
+  text-align: center;
+}
+
+.mark {
+  display: flex;
+  gap: var(--bubu-space-3);
+  color: var(--bubu-accent);
+}
+
+.mark svg { inline-size: 28px; block-size: 28px; }
+.caption { color: var(--bubu-muted); }
+.compactLabel { white-space: nowrap; }

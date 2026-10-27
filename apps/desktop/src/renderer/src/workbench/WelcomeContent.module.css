@@ -1,0 +1,45 @@
+.content {
+  container-type: inline-size;
+  max-inline-size: 760px;
+  margin-inline: auto;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--bubu-space-4);
+  min-block-size: 255px;
+  padding: var(--bubu-space-8);
+  border: 1px solid var(--bubu-border);
+  border-radius: var(--bubu-radius-hero);
+  background: linear-gradient(110deg, var(--bubu-hero-start), var(--bubu-hero-end));
+}
+
+.heroCopy { min-inline-size: 0; }
+.eyebrow { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--bubu-space-1); color: var(--bubu-accent-hover); font-size: var(--bubu-font-small); }
+.heroCopy h2 { margin-block: var(--bubu-space-3); font-family: 'Songti SC', 'STSong', 'SimSun', serif; font-size: 28px; line-height: 1.5; font-weight: 650; }
+.heroCopy h2 span { color: var(--bubu-accent); }
+.heroCopy > p:last-child { font-size: var(--bubu-font-small); color: var(--bubu-text); line-height: 1.8; }
+.artworkSlot { display: flex; justify-content: center; min-inline-size: 0; }
+.examples { margin-block-start: var(--bubu-space-6); }
+.examples h3 { margin-block-end: var(--bubu-space-3); font-size: var(--bubu-font-body); }
+.exampleList { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--bubu-space-3); margin: 0; padding: 0; list-style: none; }
+.example { display: flex; flex-direction: column; gap: var(--bubu-space-2); min-inline-size: 0; padding: var(--bubu-space-4); border: 1px solid var(--bubu-border); border-radius: var(--bubu-radius-card); background: var(--bubu-surface); }
+.exampleIcon { display: grid; place-items: center; inline-size: 32px; block-size: 32px; border-radius: var(--bubu-radius-control); color: var(--bubu-accent); background: var(--bubu-surface-soft); }
+.example h4 { font-size: var(--bubu-font-body); font-weight: 600; }
+.example p, .availability { font-size: var(--bubu-font-small); color: var(--bubu-muted); }
+.availability { margin-block-start: auto; }
+.privacyNote { display: flex; align-items: start; gap: var(--bubu-space-2); margin-block-start: var(--bubu-space-5); font-size: var(--bubu-font-small); color: var(--bubu-muted); }
+.privacyNote svg { margin-block-start: 2px; }
+
+@container (width < 560px) {
+  .hero { grid-template-columns: minmax(0, 1fr); padding: var(--bubu-space-6); }
+  .heroCopy h2 { font-size: 24px; }
+  .artworkSlot { inline-size: 200px; max-inline-size: 100%; justify-self: center; }
+  .exampleList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container (width < 360px) {
+  .exampleList { grid-template-columns: minmax(0, 1fr); }
+}

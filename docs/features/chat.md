@@ -21,6 +21,8 @@
 
 会话留在本地；选择云端 Provider 时发送给它的对话内容需按模型配置明确呈现。含本地文件正文的工具输出要独立检查外发授权。
 
-## 实现/测试（待开发）
+## 当前实现与待开发边界
 
-计划组件：`ChatWorkspace`、`MessageList`、`Composer`、`FileResultCard`。验证会话持久化、流式取消与错误恢复；与具体 UI 契约以 [组件设计](../design/COMPONENTS-AND-EVENTS.md) 为准。
+Issue #3 已实现 `ChatWorkspace` 欢迎空态和非功能性的 `ComposerPlaceholder`；右侧首次配置面板可以收起和恢复。发送、模型选择、添加文件、目录授权、新对话及会话历史入口均禁用，示例卡只是标注「后续开放」的静态说明。当前没有消息、任务或持久化数据，聊天功能状态仍为 **planned**。工作台已完成本地源码 Review 和 Owner 标准窗口视觉验收，三档实际 Electron 视口、滚动与键盘交互仍待单独验收。
+
+jsdom 组件测试覆盖工作台结构、右栏开合、Tab/Enter/Space、禁用入口以及版本 IPC 的加载与失败。真实窗口布局和滚动需人工验证。后续再实现 `MessageList`、可用的 Composer、`FileResultCard`，验证会话持久化、流式取消与错误恢复；UI 契约以 [组件设计](../design/COMPONENTS-AND-EVENTS.md) 为准。
