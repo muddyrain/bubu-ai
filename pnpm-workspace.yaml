@@ -1,0 +1,15 @@
+packages:
+  - apps/desktop
+
+engineStrict: true
+packageManagerStrict: true
+packageManagerStrictVersion: true
+managePackageManagerVersions: false
+saveExact: true
+strictPeerDependencies: true
+strictDepBuilds: true
+
+# esbuild verifies its platform binary during installation. All other scripts
+# remain blocked unless explicitly reviewed here.
+onlyBuiltDependencies:
+  - esbuild@0.25.12 || 0.28.2

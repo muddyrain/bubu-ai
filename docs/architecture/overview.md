@@ -1,12 +1,21 @@
 # Bubu AI V0.1 架构总览
 
-> **状态：planned。** 当前是架构约束，不代表模块已经完成；以实际代码和测试为准。不要为了匹配图示而过早拆十几个包。
+> **状态：业务架构 planned；Issue #1 工程骨架已实现，Owner 已完成人工 dev/start 启动验收，待最终 Code Review。** 下述业务模块尚未完成，不要为了匹配图示而过早拆十几个包。
 
 ## 技术目标
 
 - Desktop-first / Local-first；React + TypeScript + Vite 构建 UI，Electron 承载本地能力。
 - 第一阶段只搭一个 `apps/desktop`，把 Main / Preload / Renderer 的边界做好。Agent Core、File Tools、Shared Contracts 在需求形成时再拆 `packages/`；不为摆架构建空包。
 - 不必在首版启动 NestJS 服务，更不需要 Go 微服务。将来确有独立服务需求时再重审架构。
+
+## 当前工程边界
+
+- `apps/desktop/src/main` 创建窗口并注册唯一版本查询 IPC；`preload` 只通过 `contextBridge` 暴露 `window.bubu.app.getVersion()`；`renderer` 只渲染占位页。
+- `shared/ipc.ts` 保存桥接类型与固定通道，没有提前拆独立 package。无参数版本查询在 Main 拒绝额外参数；业务 Schema 与 Zod 随对应功能引入。
+- 窗口显式启用 `contextIsolation`、`sandbox`，关闭 `nodeIntegration`。Preload 打包为单个 CJS 文件，除 Electron 自身接口外没有运行期依赖。
+- IPC 同时核对窗口 WebContents 身份、主 Frame 身份和完整页面 URL。开发态仅接受固定的 `http://127.0.0.1:5173/`；构建态只接受自身 `out/renderer/index.html` 的文件 URL，不能用环境变量改成其他页面。
+- CSP 在开发态用随机 nonce 允许 Vite/React HMR 脚本与样式，并仅放行本机开发服务连接；构建态禁止网络连接和内联脚本。开发态只允许可信主 Frame 的首页同地址刷新；其他页面导航、新窗口及权限请求默认拒绝。
+- 默认验证流程不启动 GUI；Owner 已确认开发态与构建后窗口启动及版本显示正常。Renderer 运行期 Node.js 隔离、HMR、完整刷新与窗口截图尚未单独验证；后续 GUI 操作仍须按根目录 `AGENTS.md` 单独授权。
 
 ## 逻辑分层
 

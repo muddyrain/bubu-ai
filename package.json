@@ -1,0 +1,28 @@
+{
+  "name": "bubu-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.22.3 <23",
+    "pnpm": "10.33.0"
+  },
+  "scripts": {
+    "setup:electron": "pnpm --filter @bubu/desktop exec install-electron",
+    "dev": "pnpm --filter @bubu/desktop dev",
+    "start": "pnpm --filter @bubu/desktop start",
+    "build": "pnpm --filter @bubu/desktop build",
+    "typecheck": "pnpm --filter @bubu/desktop typecheck",
+    "lint": "eslint apps/desktop eslint.config.mjs",
+    "test": "pnpm --filter @bubu/desktop test"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.13.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.13.0",
+    "typescript-eslint": "8.72.0"
+  }
+}
