@@ -1,6 +1,6 @@
 # Bubu AI V0.1 架构总览
 
-> **状态：业务架构 planned；Issue #1 工程骨架已实现，Owner 已完成人工 dev/start 启动验收，待最终 Code Review。** 下述业务模块尚未完成，不要为了匹配图示而过早拆十几个包。
+> **状态：业务架构 planned；Issue #1 工程骨架已合并，Issue #3 三栏欢迎工作台已实现并通过本地源码 Review 和 Owner 标准窗口视觉验收，待 GitHub 最终 Review。** 下述业务模块尚未完成，不要为了匹配图示而过早拆十几个包。
 
 ## 技术目标
 
@@ -10,12 +10,13 @@
 
 ## 当前工程边界
 
-- `apps/desktop/src/main` 创建窗口并注册唯一版本查询 IPC；`preload` 只通过 `contextBridge` 暴露 `window.bubu.app.getVersion()`；`renderer` 只渲染占位页。
+- `apps/desktop/src/main` 创建窗口并注册唯一版本查询 IPC；`preload` 只通过 `contextBridge` 暴露 `window.bubu.app.getVersion()`；`renderer` 展示三栏欢迎工作台，未开放业务入口明确禁用。
+- Renderer 的 `App` 保留版本读取与失败状态，`WorkbenchShell` 仅维护右栏开合，Header / Sidebar / ChatWorkspace / ContextPanel 通过 props 组合。CSS Modules 与 `--bubu-*` Token 管理布局；没有路由、全局状态库或模拟 Run 数据。`MascotArtwork` 只接收独立素材属性，当前未传入正式素材，缺省或加载失败时回退到中性占位。
 - `shared/ipc.ts` 保存桥接类型与固定通道，没有提前拆独立 package。无参数版本查询在 Main 拒绝额外参数；业务 Schema 与 Zod 随对应功能引入。
 - 窗口显式启用 `contextIsolation`、`sandbox`，关闭 `nodeIntegration`。Preload 打包为单个 CJS 文件，除 Electron 自身接口外没有运行期依赖。
 - IPC 同时核对窗口 WebContents 身份、主 Frame 身份和完整页面 URL。开发态仅接受固定的 `http://127.0.0.1:5173/`；构建态只接受自身 `out/renderer/index.html` 的文件 URL，不能用环境变量改成其他页面。
 - CSP 在开发态用随机 nonce 允许 Vite/React HMR 脚本与样式，并仅放行本机开发服务连接；构建态禁止网络连接和内联脚本。开发态只允许可信主 Frame 的首页同地址刷新；其他页面导航、新窗口及权限请求默认拒绝。
-- 默认验证流程不启动 GUI；Owner 已确认开发态与构建后窗口启动及版本显示正常。Renderer 运行期 Node.js 隔离、HMR、完整刷新与窗口截图尚未单独验证；后续 GUI 操作仍须按根目录 `AGENTS.md` 单独授权。
+- 默认验证流程不启动 GUI；现有 Electron 测试使用 Node + Mock，Renderer 组件测试独立使用 jsdom。Owner 已完成 Issue #1 的启动验收及 Issue #3 的真实标准窗口三栏、欢迎页、输入区域与版本显示验收。三档 Renderer 无头预览使用模拟版本桥接；实际 Electron 三档布局、滚动、右栏键盘焦点及紧凑占位新文案仍待单独验证。Renderer 运行期 Node.js 隔离、HMR、完整刷新尚未单独验证，真实窗口截图未归档；后续 GUI 操作仍须按根目录 `AGENTS.md` 单独授权。
 
 ## 逻辑分层
 

@@ -1,0 +1,41 @@
+:root {
+  --bubu-bg: #F6F0E9;
+  --bubu-surface: #FFFDFA;
+  --bubu-surface-alt: #FAF5EF;
+  --bubu-surface-soft: #F5E8DE;
+  --bubu-white: #FFFFFF;
+  --bubu-text: #48362D;
+  --bubu-muted: #79665B;
+  --bubu-accent: #9B654A;
+  --bubu-accent-hover: #865139;
+  --bubu-border: #EADED4;
+  --bubu-divider: #F0E8E0;
+  --bubu-success: #4C916D;
+  --bubu-warning: #B16F3E;
+  --bubu-error: #C65B54;
+  --bubu-hero-start: #FFF2E5;
+  --bubu-hero-end: #FAE6D5;
+  --bubu-shadow-window: 0 22px 65px rgb(79 48 27 / 12%);
+
+  --bubu-space-1: 4px;
+  --bubu-space-2: 8px;
+  --bubu-space-3: 12px;
+  --bubu-space-4: 16px;
+  --bubu-space-5: 20px;
+  --bubu-space-6: 24px;
+  --bubu-space-8: 32px;
+  --bubu-radius-control: 10px;
+  --bubu-radius-card: 16px;
+  --bubu-radius-hero: 22px;
+  --bubu-radius-pill: 999px;
+  --bubu-font-small: 0.75rem;
+  --bubu-font-body: 0.875rem;
+  --bubu-control-height: 38px;
+  --bubu-header-height: 58px;
+  --bubu-pane-header-height: 55px;
+  --bubu-sidebar-expanded: 216px;
+  --bubu-sidebar-compact: 70px;
+  --bubu-panel-wide: 354px;
+  --bubu-panel-medium: 318px;
+  --bubu-panel-compact: 296px;
+}

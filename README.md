@@ -1,6 +1,6 @@
 # Bubu AI · Local-first AI File Workspace
 
-> **当前状态：Issue #1 最小桌面工程已实现，Owner 已完成人工 dev/start 启动验收，待最终 Code Review。** 当前仅包含应用壳和版本 IPC；下列 V0.1 业务功能仍为 planned。
+> **当前状态：Issue #3 三栏欢迎工作台已实现，已完成本地源码 Review 和 Owner 标准窗口视觉验收，待 GitHub 最终 Review。** 当前包含 UI 外壳、右栏开合和版本 IPC；下列 V0.1 业务功能仍为 planned。
 
 Bubu AI 是以「一二布布」为情感化交互主题的桌面 AI 工作台，通过自然语言搜索、读取、理解并整理**用户主动授权的本地文件**。
 
@@ -25,6 +25,10 @@ Bubu AI 是以「一二布布」为情感化交互主题的桌面 AI 工作台�
 
 工程使用 pnpm workspace，唯一应用在 `apps/desktop/`。Electron Main、sandbox Preload 和 React Renderer 分离，通过 electron-vite 构建，不包含 Agent、模型连接或文件业务。
 
+Renderer 按 Workbench V1.2 拆为 Header、Sidebar、ChatWorkspace、ContextPanel 和独立素材槽位。当前只展示欢迎与未配置状态；右栏支持鼠标和键盘收起/恢复，聊天输入、模型配置、目录授权及其他导航明确禁用。三个用法示例是静态说明，不会生成会话或执行任务。角色仅使用标注清楚的中性占位，没有引入原型内嵌角色或第三方图片。
+
+布局以 renderer CSS 视口为准：1440px 下左右栏为 216/354px，1100px 为 216/318px，1024px 为 70/296px。中央和右栏分别滚动，Composer 留在中央底部；中央变窄时 Hero 上下排，三项示例始终保留。本期最小目标为 1024×720，不提供更窄窗口的抽屉。
+
 环境要求：Node.js `>=22.22.3 <23`、pnpm `10.33.0`。`package.json` 固定直接依赖版本，`pnpm-lock.yaml` 固定完整依赖树；仓库 `.npmrc` 使用公共 npm registry，不修改系统配置。
 
 ```bash
@@ -37,7 +41,7 @@ pnpm build
 node scripts/check-repo-hygiene.mjs
 ```
 
-以上命令均不打开 GUI。`pnpm test` 只运行 Node 环境的 Vitest，Electron API 被 mock；HMR/CSP 测试只在内存中转换 HTML，不监听端口，不启动 Electron 或浏览器。Mock 测试不代表 Electron 运行验收已经通过。
+以上命令均不打开 GUI。Vitest 默认使用 Node 环境，现有 Electron 测试保留 Mock；Renderer 的 `.test.tsx` 文件单独指定 jsdom，使用 React Testing Library 和 user-event 验证组件、键盘行为与素材降级。这四项新增依赖仅用于测试并精确锁定版本。HMR/CSP 测试只在内存中转换 HTML，不监听端口；普通测试不启动 Electron 或浏览器。jsdom 不进行真实页面排版，不能证明尺寸、滚动或视觉验收通过。
 
 安装脚本采用 pnpm 10 白名单与 `strictDepBuilds`：仅允许锁定的 `esbuild` 版本执行脚本，新增脚本必须单独审查。Electron `45.0.0` 没有安装期脚本，不额外授予其安装脚本权限。
 
@@ -55,9 +59,9 @@ pnpm start      # 用 Electron 加载 out/ 中的构建产物
 
 开发服务端口被占用时直接失败，不切换到其他端口。结束 GUI 验证后，在启动命令的终端按 `Ctrl+C` 退出；macOS 上仅关闭窗口可能保留应用进程。只清理本次任务启动的进程。
 
-**验证状态**：Owner 已亲自验证 `pnpm dev` 与 `pnpm start` 正常启动 Electron，窗口显示初始化页面和应用版本 `0.1.0`，Electron 二进制缺失问题已解决。HMR、完整刷新、Renderer 运行期 Node.js 隔离、普通/最小窗口尺寸及应用窗口截图尚未单独验证；Mock 测试与 Build 不能代替这些检查。`pnpm build` 只编译应用，不生成安装包或发布版本。
+**验证状态**：Issue #1 的初始化页面已由 Owner 验证 dev/start 启动和版本 `0.1.0`，Electron 二进制缺失问题已解决。Issue #3 已完成本地源码 Review，Owner 已在真实 Electron 标准窗口确认三栏配色、欢迎页、底部输入区域和版本显示。1440×900、1100×800、1024×720 及右栏折叠态已有 Renderer 无头预览，使用模拟版本桥接，不代表真实 Electron 验收；紧凑占位文案修复另有 1440×900、1024×720 无头预览。三档实际 Electron 视口、独立滚动、右栏开合与键盘焦点、系统深色模式、减少动态效果、HMR、完整刷新及 Renderer 运行期 Node.js 隔离仍未单独验证，紧凑占位新文案待真实窗口确认。真实应用截图尚未归档；无界面测试与 Build 不能代替这些检查。`pnpm build` 只编译应用，不生成安装包或发布版本。
 
-当前主分支为 `master`；Issue #1 的唯一开发分支是 `chore/1-electron-bootstrap`，以 `master` 为基线。分支、提交、推送和 PR 按授权分别执行，不自动将主分支改为 `main`。
+当前主分支为 `master`；Issue #3 的唯一开发分支是 `feat/3-workbench-shell`，以已合并 Issue #1 的 `master` 为基线。分支、提交、推送和 PR 按授权分别执行，不自动将主分支改为 `main`。
 
 ## 角色素材
 
