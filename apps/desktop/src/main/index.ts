@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { app, BrowserWindow } from 'electron';
 import { DEV_SERVER_URL } from '../shared/ipc';
 import { registerAppIpc } from './ipc';
+import { disposeProviderIpc, registerProviderIpc } from './providers/ipc';
 
 async function createWindow(): Promise<void> {
   const rendererFile = join(__dirname, '../renderer/index.html');
@@ -25,6 +26,7 @@ async function createWindow(): Promise<void> {
   });
 
   registerAppIpc(window, rendererUrl);
+  registerProviderIpc(window, rendererUrl);
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-frame-navigate', (event) => {
     const mainFrame = window.webContents.mainFrame;
@@ -69,7 +71,8 @@ function handleStartupError(error: unknown, phase: 'startup' | 'activate' = 'sta
 }
 
 app.setName('Bubu AI');
-app.whenReady().then(async () => {
+if (!app.requestSingleInstanceLock()) app.quit();
+else app.whenReady().then(async () => {
   await createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -77,6 +80,8 @@ app.whenReady().then(async () => {
     }
   });
 }).catch(handleStartupError);
+
+app.on('before-quit', disposeProviderIpc);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

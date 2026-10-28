@@ -1,8 +1,18 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { GET_VERSION_CHANNEL } from '../shared/ipc';
 import type { BubuApi } from '../shared/ipc';
+import { PROVIDER_CHANNELS } from '../shared/providers';
 
 const bubu: BubuApi = Object.freeze({
+  providers: Object.freeze({
+    list: () => ipcRenderer.invoke(PROVIDER_CHANNELS.list),
+    save: (input) => ipcRenderer.invoke(PROVIDER_CHANNELS.save, input),
+    select: (input) => ipcRenderer.invoke(PROVIDER_CHANNELS.select, input),
+    remove: (input) => ipcRenderer.invoke(PROVIDER_CHANNELS.remove, input),
+    testConnection: (input) => ipcRenderer.invoke(PROVIDER_CHANNELS.testConnection, input),
+    detectTools: (input) => ipcRenderer.invoke(PROVIDER_CHANNELS.detectTools, input),
+    cancelProbe: (input) => ipcRenderer.invoke(PROVIDER_CHANNELS.cancelProbe, input),
+  } satisfies BubuApi['providers']),
   app: Object.freeze({
     getVersion: () => ipcRenderer.invoke(GET_VERSION_CHANNEL) as Promise<string>,
   }),

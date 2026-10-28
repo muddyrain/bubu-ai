@@ -2,9 +2,7 @@
   --bubu-sidebar-width: var(--bubu-sidebar-expanded);
   --bubu-panel-width: var(--bubu-panel-wide);
   block-size: 100%;
-  max-inline-size: 1760px;
-  margin-inline: auto;
-  padding: 17px var(--bubu-space-5);
+  inline-size: 100%;
   font-size: var(--bubu-font-body);
 }
 
@@ -13,10 +11,7 @@
   grid-template-rows: var(--bubu-header-height) minmax(0, 1fr);
   block-size: 100%;
   overflow: hidden;
-  border: 1px solid var(--bubu-border);
-  border-radius: var(--bubu-radius-hero);
   background: var(--bubu-surface);
-  box-shadow: var(--bubu-shadow-window);
 }
 
 .header {
@@ -42,7 +37,7 @@
 }
 .breadcrumb { display: flex; gap: var(--bubu-space-3); color: var(--bubu-muted); white-space: nowrap; }
 .headerStatus { display: flex; align-items: center; gap: var(--bubu-space-4); margin-inline-start: auto; min-inline-size: 0; }
-.modelStatus { white-space: nowrap; }
+.modelStatus { max-inline-size: 24rem; overflow-wrap: anywhere; }
 .statusDot { inline-size: 7px; block-size: 7px; border-radius: 50%; background: var(--bubu-muted); }
 .version { max-inline-size: 13rem; font-size: var(--bubu-font-small); color: var(--bubu-muted); overflow-wrap: anywhere; }
 
@@ -52,6 +47,7 @@
   min-block-size: 0;
 }
 .layout[data-panel-open='false'] { grid-template-columns: var(--bubu-sidebar-width) minmax(0, 1fr); }
+.layout[data-view='settings'] { grid-template-columns: var(--bubu-sidebar-width) minmax(0, 1fr); }
 
 .sidebar {
   display: flex;
@@ -114,7 +110,7 @@
 .composerHint { margin-block-start: var(--bubu-space-2); color: var(--bubu-muted); font-size: var(--bubu-font-small); text-align: center; }
 
 .contextPanel { display: grid; grid-template-rows: var(--bubu-pane-header-height) minmax(0, 1fr); min-block-size: 0; min-inline-size: 0; border-inline-start: 1px solid var(--bubu-border); background: var(--bubu-surface-alt); }
-.contextHeader { display: flex; align-items: center; padding-inline: var(--bubu-space-5); border-block-end: 1px solid var(--bubu-border); }
+.contextHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--bubu-space-2); padding-inline: var(--bubu-space-5); border-block-end: 1px solid var(--bubu-border); }
 .contextHeader h2 { font-size: var(--bubu-font-body); }
 .contextScroll { display: flex; flex-direction: column; gap: var(--bubu-space-4); min-block-size: 0; overflow-y: auto; padding: var(--bubu-space-4); }
 .contextCard { flex-shrink: 0; display: grid; gap: var(--bubu-space-3); padding: var(--bubu-space-4); border: 1px solid var(--bubu-border); border-radius: var(--bubu-radius-card); background: var(--bubu-surface); }
@@ -145,4 +141,17 @@
   .navLabel { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .sidebarLabel, .navBadge, .sessionEmpty, .sidebarCompanion, .sidebarFooter { display: none; }
   .breadcrumb { display: none; }
+}
+
+.sidebar[data-view='settings'] { background: var(--bubu-surface-alt); }
+.sidebar[data-view='settings'] .navButton, .sidebar[data-view='settings'] .navCurrent { border-radius: 6px; }
+.settingsSidebarNote { display: grid; gap: 10px; margin-block-start: auto; padding: 20px 14px 0; font-size: 12px; line-height: 1.8; color: var(--bubu-muted); }
+.settingsSidebarNote strong { color: var(--bubu-text); font-weight: 500; }
+.settingsSidebarNote svg { inline-size: 16px; block-size: 16px; }
+@media (width < 1250px) {
+  .layout[data-view='settings'] { --bubu-sidebar-width: var(--bubu-sidebar-compact); }
+  .sidebar[data-view='settings'] { padding-inline: var(--bubu-space-2); }
+  .sidebar[data-view='settings'] .navButton, .sidebar[data-view='settings'] .navCurrent { justify-content: center; padding-inline: var(--bubu-space-2); }
+  .sidebar[data-view='settings'] .navLabel { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .sidebar[data-view='settings'] .sidebarLabel, .sidebar[data-view='settings'] .navBadge, .settingsSidebarNote { display: none; }
 }

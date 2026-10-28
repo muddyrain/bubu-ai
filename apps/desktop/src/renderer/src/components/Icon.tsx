@@ -1,4 +1,9 @@
 const paths = {
+  close: <path d="m6 6 12 12M6 18 18 6" />,
+  check: <path d="m5 12 4 4L19 6" />,
+  edit: <path d="m15 4 5 5M4 20l5-1L21 7l-4-4L5 15Z" />,
+  key: <><circle cx="8" cy="9" r="5" /><path d="m12 12 8 8m-4-4 3-3" /></>,
+  alert: <><path d="m12 3 10 18H2ZM12 9v5" /><circle cx="12" cy="17.5" r=".5" /></>,
   home: <path d="m3 10 9-7 9 7v10H15v-7H9v7H3Z" />,
   plus: <path d="M12 5v14M5 12h14" />,
   message: <path d="M21 11a9 9 0 0 1-13 8L3 21l2-6a9 9 0 1 1 16-4Z" />,

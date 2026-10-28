@@ -23,6 +23,8 @@
 
 ## 当前实现与待开发边界
 
+Issue #5 在右栏提供模型配置与独立主动探针，并同步所选模型摘要；这不启用聊天。聊天输入、发送、会话与文件按钮仍禁用。Issue #6 再通过 Main 的配置 ID/版本和凭据服务建立真实流式会话，不从 Renderer 接收可信全历史，也不向 Renderer 返回 Key。
+
 Issue #3 已实现 `ChatWorkspace` 欢迎空态和非功能性的 `ComposerPlaceholder`；右侧首次配置面板可以收起和恢复。发送、模型选择、添加文件、目录授权、新对话及会话历史入口均禁用，示例卡只是标注「后续开放」的静态说明。当前没有消息、任务或持久化数据，聊天功能状态仍为 **planned**。工作台已完成本地源码 Review 和 Owner 标准窗口视觉验收，三档实际 Electron 视口、滚动与键盘交互仍待单独验收。
 
 jsdom 组件测试覆盖工作台结构、右栏开合、Tab/Enter/Space、禁用入口以及版本 IPC 的加载与失败。真实窗口布局和滚动需人工验证。后续再实现 `MessageList`、可用的 Composer、`FileResultCard`，验证会话持久化、流式取消与错误恢复；UI 契约以 [组件设计](../design/COMPONENTS-AND-EVENTS.md) 为准。

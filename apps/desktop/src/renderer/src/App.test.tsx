@@ -8,7 +8,9 @@ const getVersion = vi.fn<() => Promise<string>>();
 
 beforeEach(() => {
   getVersion.mockReset().mockResolvedValue('0.1.0');
-  vi.stubGlobal('bubu', { app: { getVersion } });
+  vi.stubGlobal('bubu', { app: { getVersion }, providers: {
+    list: vi.fn(async () => ({ ok: true, value: { profiles: [], selectedProfileId: null, cleanupPending: false } })),
+  } });
 });
 
 afterEach(() => {
@@ -32,7 +34,7 @@ describe('Workbench welcome shell', () => {
     expect(screen.getByRole('region', { name: '消息输入区' })).toBeTruthy();
     expect(screen.getByText('暂无会话')).toBeTruthy();
     expect(screen.getByText('未授权本地目录。目录授权后续开放。')).toBeTruthy();
-    expect(screen.getAllByText('暂无模型连接').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('未配置模型').length).toBeGreaterThan(0);
     expect(getVersion).toHaveBeenCalledExactlyOnceWith();
   });
 
@@ -45,7 +47,7 @@ describe('Workbench welcome shell', () => {
     expect(within(examples).getAllByText('后续开放')).toHaveLength(3);
     const toggle = screen.getByRole('button', { name: '收起面板' });
     for (const button of screen.getAllByRole<HTMLButtonElement>('button')) {
-      expect(button.disabled).toBe(button !== toggle);
+      expect(button.disabled).toBe(![screen.getByRole('button', { name: '工作台' }), toggle, screen.getByRole('button', { name: '设置' }), screen.getByRole('button', { name: '添加模型' })].includes(button));
     }
     const input = screen.getByRole<HTMLTextAreaElement>('textbox', { name: '消息输入' });
     expect(input.disabled).toBe(true);
@@ -86,6 +88,10 @@ describe('Workbench welcome shell', () => {
     await renderWorkbench();
     const toggle = screen.getByRole('button', { name: '收起面板' });
     await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '工作台' }));
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '设置' }));
+    await user.tab();
     expect(document.activeElement).toBe(toggle);
     await user.keyboard('{Enter}');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
@@ -95,6 +101,9 @@ describe('Workbench welcome shell', () => {
     expect(document.activeElement).toBe(screen.getByRole('region', { name: '欢迎内容' }));
     await user.tab();
     expect(document.activeElement).toBe(document.body);
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '工作台' }));
+    await user.tab();
     await user.tab();
     expect(document.activeElement).toBe(toggle);
     await user.keyboard(' ');
@@ -112,6 +121,38 @@ describe('Workbench welcome shell', () => {
     expect(screen.getByRole('status').textContent).toBe('版本读取中…');
     await act(async () => { resolveVersion('2.3.4'); });
     expect(screen.getByRole('status').textContent).toBe('应用版本 2.3.4');
+  });
+
+  it.each([true, false])('switches exclusive main views and restores panel visibility: %s', async (panelOpen) => {
+    const user = userEvent.setup(); await renderWorkbench();
+    if (!panelOpen) await user.click(screen.getByRole('button', { name: '收起面板' }));
+    const workbench = screen.getByRole('button', { name: '工作台' });
+    const settings = screen.getByRole('button', { name: '设置' });
+    expect(workbench.getAttribute('aria-current')).toBe('page');
+    const panelId = screen.getByRole('button', { name: panelOpen ? '收起面板' : '展开面板' }).getAttribute('aria-controls');
+    await user.click(settings);
+    expect(settings.getAttribute('aria-current')).toBe('page'); expect(workbench.hasAttribute('aria-current')).toBe(false);
+    expect(screen.getByRole('main', { name: '模型供应商' })).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: '模型供应商' }));
+    expect(screen.queryByRole('main', { name: '欢迎使用' })).toBeNull();
+    expect(screen.queryByRole('region', { name: '消息输入区' })).toBeNull();
+    expect(screen.queryByRole('complementary', { name: '开始使用' })).toBeNull();
+    await user.click(workbench);
+    expect(workbench.getAttribute('aria-current')).toBe('page'); expect(settings.hasAttribute('aria-current')).toBe(false);
+    expect(document.activeElement).toBe(workbench);
+    expect(screen.getByRole('button', { name: panelOpen ? '收起面板' : '展开面板' }).getAttribute('aria-controls')).toBe(panelId);
+    expect(screen.queryByRole('complementary', { name: '开始使用' }) !== null).toBe(panelOpen);
+    expect(screen.getByRole('region', { name: '消息输入区' })).toBeTruthy();
+  });
+
+  it('opens the same settings page from welcome onboarding and returns using its back button', async () => {
+    const user = userEvent.setup(); await renderWorkbench();
+    await user.click(screen.getByRole('button', { name: '添加模型' }));
+    expect(screen.getByRole('button', { name: '设置' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: '返回工作台' }));
+    expect(screen.getByRole('main', { name: '欢迎使用' })).toBeTruthy();
+    expect(screen.getByRole('complementary', { name: '开始使用' })).toBeTruthy();
   });
 
   it('keeps the workbench usable if the version bridge rejects without exposing error details', async () => {

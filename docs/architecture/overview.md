@@ -1,6 +1,6 @@
 # Bubu AI V0.1 架构总览
 
-> **状态：业务架构 planned；Issue #1 工程骨架已合并，Issue #3 三栏欢迎工作台已实现并通过本地源码 Review 和 Owner 标准窗口视觉验收，待 GitHub 最终 Review。** 下述业务模块尚未完成，不要为了匹配图示而过早拆十几个包。
+> **状态：Issue #1/#3 已合并；Issue #5 Provider 配置已实现，Owner macOS 真实连接与工具探针通过，待 GitHub 最终 Review；其他业务仍 planned。** 退出重启后的恢复解密尚未单独确认。下述业务模块尚未完成，不要为了匹配图示而过早拆十几个包。
 
 ## 技术目标
 
@@ -10,8 +10,9 @@
 
 ## 当前工程边界
 
-- `apps/desktop/src/main` 创建窗口并注册唯一版本查询 IPC；`preload` 只通过 `contextBridge` 暴露 `window.bubu.app.getVersion()`；`renderer` 展示三栏欢迎工作台，未开放业务入口明确禁用。
-- Renderer 的 `App` 保留版本读取与失败状态，`WorkbenchShell` 仅维护右栏开合，Header / Sidebar / ChatWorkspace / ContextPanel 通过 props 组合。CSS Modules 与 `--bubu-*` Token 管理布局；没有路由、全局状态库或模拟 Run 数据。`MascotArtwork` 只接收独立素材属性，当前未传入正式素材，缺省或加载失败时回退到中性占位。
+- `apps/desktop/src/main` 创建窗口，注册版本查询和具名 providers IPC；`preload` 通过冻结的 `contextBridge` 暴露 `window.bubu.app.getVersion()` 与有限 `providers.*`；Renderer 提供 workbench/settings 二选一主视图，共用顶部应用栏和侧栏；工作台三栏与独立设置页分别挂载，聊天/文件入口禁用。
+- Renderer 的 `App` 保留版本读取与失败状态，`WorkbenchShell` 维护右栏开合、主视图切换、未保存修改保护及共享配置快照，Header / Sidebar / ChatWorkspace / ContextPanel 通过 props 组合。CSS Modules 与 `--bubu-*` Token 管理布局；没有路由、全局状态库或模拟 Run 数据。ProviderSettings 以方案 A 组合 ProviderList、ProviderForm 和 ProviderDiagnostics，按实际内容宽度保留双栏；共享 ModalDialog 负责真正模态、默认安全焦点与恢复，保存栏由真实 dirty 状态控制；useProviders 保持单一快照来源，重新进入设置时通过既有 list IPC 刷新，并丢弃过期列表响应。UI 重排不修改 Main/Preload、服务契约、userData 或密文。`MascotArtwork` 只接收独立素材属性，当前未传入正式素材，缺省或加载失败时回退到中性占位。
+- `main/providers/ProviderService` 串行管理配置、选择与检测；ProfileStorage 管理版本化索引/独立密文与原子写入，CredentialVault 封装异步 safeStorage，Transport 校验公网 URL/DNS 并固定 TLS 连接，OpenAIChatCompletionsAdapter 仅实现固定探针。未引入 SDK、数据库、会话流或 Agent。窗口/文档 owner 绑定请求，关闭/重开及取消隔离，应用单实例保护写入；用户数据路径、平台限制和迁移边界见 [模型配置](../features/model-providers.md)。
 - `shared/ipc.ts` 保存桥接类型与固定通道，没有提前拆独立 package。无参数版本查询在 Main 拒绝额外参数；业务 Schema 与 Zod 随对应功能引入。
 - 窗口显式启用 `contextIsolation`、`sandbox`，关闭 `nodeIntegration`。Preload 打包为单个 CJS 文件，除 Electron 自身接口外没有运行期依赖。
 - IPC 同时核对窗口 WebContents 身份、主 Frame 身份和完整页面 URL。开发态仅接受固定的 `http://127.0.0.1:5173/`；构建态只接受自身 `out/renderer/index.html` 的文件 URL，不能用环境变量改成其他页面。
