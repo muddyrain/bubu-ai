@@ -38,6 +38,10 @@ WorkbenchShell
 
 **依赖方向**：`renderer/ui -> shared/types`；`preload` 暴露具名桥；`main -> agent-core -> file-tools`。React UI **不能** import `fs`、`child_process`、Electron Main 模块或云供应商密钥。
 
+模型设置采用独立 Settings 主页面，与工作台二选一挂载，共用 Header 和 Sidebar。ProviderSettings 组合 ProviderList、ProviderForm、ProviderDiagnostics；采用选定方案 A：1440/1100/1024px 的配置列分别为 224/224/208px，均保留双栏，横向设置行与下方诊断分别组织。Renderer 铺满原生窗口客户区，Settings 在 1250px 以下提前将主导航收为 70px 图标栏，Workbench 原有断点不变。列表、详情独立滚动，只有修改时才显示保存/放弃区。设置页不显示 Hero、Composer 或 ContextPanel。返回、新建、切换、删除统一保护未保存修改；ModalDialog 复用原生 showModal() 为检测、删除和未保存确认提供真正的模态边界；默认聚焦取消/继续编辑，支持 Tab 约束、Escape 与焦点返回。明确放弃或离开后清理密码框；Key 不回显且提交前清空输入。连接测试与工具探针分别确认接收方、固定内容和潜在用量；显示“上次检测通过 + 时间”，不显示虚构在线状态。聊天与文件操作仍禁用。
+
+探针 committing 与普通表单保存分开：committing 不阻塞返回工作台或浏览配置，不宣称取消成功；真实持久化由既有 Main 服务维护，重新进入页面刷新安全快照。
+
 ## 2. 关键前端 props（示例）
 
 ```ts

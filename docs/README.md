@@ -21,11 +21,11 @@
 | 功能 | 现状 |
 |---|---|
 | [AI 对话](features/chat.md) | planned |
-| [模型供应商](features/model-providers.md) | planned |
+| [模型供应商](features/model-providers.md) | in-progress：Owner 真实连接与工具探针通过，待 GitHub 最终 Review；重启解密未单独确认 |
 | [本地文件访问](features/local-files.md) | planned |
 | [文件整理](features/file-operations.md) | planned |
 | [Agent 执行与审批](features/agent-execution.md) | planned |
-| [隐私与权限](features/privacy-security.md) | planned |
+| [隐私与权限](features/privacy-security.md) | in-progress：模型凭据/网络边界已实现，文件权限仍 planned |
 | [一二布布视觉状态](features/mascot.md) | planned |
 
 `planned` 代表设计期功能，**不是应用已经支持**；每个功能 PR 实际通过验收后，再把对应段落更新为 `implemented` 并注明验证。

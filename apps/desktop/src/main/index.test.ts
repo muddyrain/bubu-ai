@@ -20,12 +20,16 @@ const electron = vi.hoisted(() => ({
   setPermissionRequestHandler: vi.fn<(handler: (contents: unknown, permission: string, callback: (allowed: boolean) => void) => void) => void>(),
   setPermissionCheckHandler: vi.fn<(handler: () => boolean) => void>(),
   registerAppIpc: vi.fn(),
+  registerProviderIpc: vi.fn(),
+  singleInstance: vi.fn(),
+  disposeProviderIpc: vi.fn(),
   mainFrame: { url: 'about:blank' },
 }));
 
 vi.mock('electron', () => ({
   app: {
     setName: vi.fn(),
+    requestSingleInstanceLock: electron.singleInstance,
     whenReady: electron.whenReady,
     on: electron.appOn,
     quit: electron.quit,
@@ -48,12 +52,14 @@ vi.mock('electron', () => ({
 }));
 
 vi.mock('./ipc', () => ({ registerAppIpc: electron.registerAppIpc }));
+vi.mock('./providers/ipc', () => ({ registerProviderIpc: electron.registerProviderIpc, disposeProviderIpc: electron.disposeProviderIpc }));
 
 beforeEach(() => {
   vi.resetModules();
   vi.resetAllMocks();
   electron.mainFrame.url = 'about:blank';
   electron.whenReady.mockResolvedValue(undefined);
+  electron.singleInstance.mockReturnValue(true);
   electron.getAllWindows.mockReturnValue([]);
   electron.loadURL.mockImplementation(async (url) => { electron.mainFrame.url = url; });
   electron.loadFile.mockImplementation(async (path) => { electron.mainFrame.url = pathToFileURL(path).href; });
@@ -91,6 +97,19 @@ function activate(): void {
 }
 
 describe('BrowserWindow initialization without Electron', () => {
+  it('prevents two application instances from racing on the same profile store', async () => {
+    electron.singleInstance.mockReturnValue(false);
+    await boot();
+    expect(electron.quit).toHaveBeenCalledOnce();
+    expect(electron.construct).not.toHaveBeenCalled();
+    expect(electron.whenReady).not.toHaveBeenCalled();
+  });
+  it('registers provider lifecycle cleanup without touching the real credential backend', async () => {
+    await boot();
+    expect(electron.registerProviderIpc).toHaveBeenCalledWith(expect.any(Object), DEV_SERVER_URL);
+    const close = electron.appOn.mock.calls.find(([name]) => name === 'before-quit')?.[1];
+    close?.(); expect(electron.disposeProviderIpc).toHaveBeenCalledOnce();
+  });
   it.each([true, false])('applies the security settings and preload path (development=%s)', async (development) => {
     await boot(development);
     expect(electron.construct).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
