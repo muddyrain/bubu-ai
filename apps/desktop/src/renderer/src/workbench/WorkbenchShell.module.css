@@ -90,8 +90,8 @@
   min-block-size: 0;
 }
 .chatHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--bubu-space-3); padding-inline: var(--bubu-space-5); border-block-end: 1px solid var(--bubu-divider); min-inline-size: 0; }
-.chatHeading { display: flex; align-items: center; flex-wrap: wrap; column-gap: var(--bubu-space-3); min-inline-size: 0; }
-.chatHeading h1 { font-size: var(--bubu-font-body); font-weight: 650; }
+.chatHeading { display: flex; align-items: center; flex-wrap: wrap; column-gap: var(--bubu-space-3); min-inline-size: 0; overflow: hidden; }
+.chatHeading h1 { max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--bubu-font-body); font-weight: 650; }
 .chatHeading span { color: var(--bubu-muted); font-size: var(--bubu-font-small); }
 .panelToggle { display: inline-flex; align-items: center; justify-content: center; gap: var(--bubu-space-2); min-block-size: 36px; flex-shrink: 0; padding: var(--bubu-space-1) var(--bubu-space-3); border: 1px solid var(--bubu-border); border-radius: var(--bubu-radius-control); background: var(--bubu-surface); color: var(--bubu-accent); font-size: var(--bubu-font-small); transition: background 150ms ease-out; }
 .panelToggle:hover { background: var(--bubu-surface-soft); }

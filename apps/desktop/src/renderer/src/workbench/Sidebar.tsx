@@ -1,10 +1,9 @@
-import type { Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { Icon } from '../components/Icon';
 import type { IconName } from '../components/Icon';
 import styles from './WorkbenchShell.module.css';
 
 const unavailableEntries: { label: string; icon: IconName }[] = [
-  { label: '新对话', icon: 'plus' }, { label: '最近会话', icon: 'message' },
   { label: '文件空间', icon: 'folder' }, { label: '任务记录', icon: 'clock' },
 ];
 
@@ -14,8 +13,11 @@ interface Props {
   workbenchDisabled: boolean;
   onOpenSettings: () => void;
   onOpenWorkbench: () => void;
+  onNew: () => void;
+  onSessions: () => void;
+  sessions: ReactNode;
 }
-export function Sidebar({ view, workbenchRef, workbenchDisabled, onOpenSettings, onOpenWorkbench }: Props) {
+export function Sidebar({ view, workbenchRef, workbenchDisabled, onOpenSettings, onOpenWorkbench, onNew, onSessions, sessions }: Props) {
   return (
     <aside className={styles.sidebar} data-view={view} aria-label="工作台导航">
       <div className={styles.sidebarScroll}>
@@ -27,6 +29,8 @@ export function Sidebar({ view, workbenchRef, workbenchDisabled, onOpenSettings,
               aria-current={view === 'workbench' ? 'page' : undefined} onClick={onOpenWorkbench}>
               <Icon name="home" /><span className={styles.navLabel}>工作台</span>
             </button></li>
+            <li><button type="button" className={styles.navButton} aria-label="新对话" title="新对话" disabled={view==='settings'} onClick={onNew}><Icon name="plus"/><span className={styles.navLabel}>新对话</span></button></li>
+            <li><button type="button" className={styles.navButton} aria-label="最近会话" title="最近会话" disabled={view==='settings'} onClick={onSessions}><Icon name="message"/><span className={styles.navLabel}>最近会话</span></button></li>
             {unavailableEntries.map(({ label, icon }) => (
               <li key={label}>
                 <button type="button" className={styles.navButton} disabled title={`${label} · 后续开放`}
@@ -42,10 +46,8 @@ export function Sidebar({ view, workbenchRef, workbenchDisabled, onOpenSettings,
             </button></li>
           </ul>
         </nav>
-        <section hidden={view === 'settings'} className={styles.sessionEmpty} aria-labelledby="recent-sessions-title">
-          <h2 id="recent-sessions-title">最近会话</h2><p>暂无会话</p>
-          <p id="navigation-unavailable-note">会话、文件与任务功能后续开放。</p>
-        </section>
+        <div hidden={view === 'settings'} className={styles.sessionEmpty}>{sessions}</div>
+        <span id="navigation-unavailable-note" className={styles.navLabel}>文件与任务功能后续开放。</span>
       </div>
       {view === 'settings' ? <div className={styles.settingsSidebarNote}><Icon name="shield" /><div><strong>本地优先</strong><p>连接与数据，都由你决定。</p></div></div> : <>
         <div className={styles.sidebarCompanion}><Icon name="heart" /><p>和布布一起<br />把文件变得井井有条</p></div>

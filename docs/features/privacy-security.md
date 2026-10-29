@@ -16,7 +16,9 @@
 
 ## 用户可用控制（计划）
 
-模型设置现已提供具名配置管理与独立检测确认，Key 不回显；仅向所确认供应商发送固定探针消息，保存本身不联网。传输仅 Main 侧公网 HTTPS/443，TLS、DNS 地址和重定向限制不可由 Renderer 放宽。密文在 OS 应用数据目录单独保存，安全存储失败不落明文，开发数据隔离；详见 [模型供应商](model-providers.md)。自动化全部使用 Mock；Owner 已亲自验证 macOS Electron 保存、Key 不回显、真实连接与工具探针成功。退出重启后的恢复解密及 Keychain 异常场景尚未单独确认，后续真实测试仍须单独授权。
+模型设置现已提供具名配置管理与独立检测确认，Key 不回显；仅向所确认供应商发送固定探针消息，保存本身不联网。传输仅 Main 侧公网 HTTPS/443，TLS、DNS 地址和重定向限制不可由 Renderer 放宽。密文在 OS 应用数据目录单独保存，安全存储失败不落明文，开发数据隔离；详见 [模型供应商](model-providers.md)。自动化全部使用 Mock；Owner 已验证 macOS Electron 保存、Key 不回显、真实连接、工具探针、重启恢复及工作台模型选择。Keychain 异常场景仍未单独确认，后续真实测试须单独授权。
+
+Issue #6 阶段 A 增加 Main-only 文本流式底座，阶段 B 已接入 React 聊天；Owner 已完成 [Stage C 真实 macOS Electron 验收](https://github.com/muddyrain/bubu-ai/issues/6#issuecomment-6486475136)，自动化仍仅使用 Mock。发送只使用 Main 可信模型和本地完整成功历史；跨 Profile/revision 的历史外发需要一次性计划确认，UI 列明接收方、类别、数量、字节及潜在用量，默认取消。停止/失败/截断的回答不自动继续外发。聊天正文、标题与接收方元数据以**明文 JSON** 保存在 userData 的 chat/conversations 中，开发目录另行隔离，输入区明确披露；草稿只在 Renderer 内存保留。API Key 继续独立加密，不写聊天文件或日志。无磁盘聊天加密、云同步、备份或导出承诺。完整存储/取消边界见 [AI 对话](chat.md)。
 
 授权目录与权限列表、撤销授权；写操作方案审查与拒绝；任务停止；查看操作状态和异常原因。
 

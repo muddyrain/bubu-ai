@@ -1,6 +1,6 @@
 # Bubu AI · Local-first AI File Workspace
 
-> **当前状态：Issue #3 工作台已合并；Issue #5 模型供应商配置已实现，Owner 已完成 macOS Electron 保存、真实连接与 Tool Calling 检测，待 GitHub 最终 Review。** 当前 UI 可作为交付基线，后续独立迭代；退出重启后的恢复解密尚未单独确认，聊天、文件和 Agent 仍未开放。
+> **当前状态：Issue #1/#3/#5 已合并；Issue #6 普通文本流式聊天已通过 Stage A/B 源码 Review、P1 Close-out 及 Owner 的真实 macOS Electron 验收，待 GitHub 最终 Code Review。** 文件和 Agent 仍未开放。
 
 Bubu AI 是以「一二布布」为情感化交互主题的桌面 AI 工作台，通过自然语言搜索、读取、理解并整理**用户主动授权的本地文件**。
 
@@ -23,13 +23,15 @@ Bubu AI 是以「一二布布」为情感化交互主题的桌面 AI 工作台�
 
 ## 开发说明
 
-工程使用 pnpm workspace，唯一应用在 `apps/desktop/`。Electron Main、sandbox Preload 和 React Renderer 分离，通过 electron-vite 构建。模型检测仅由 Main 发起，不包含 Agent、真实聊天或文件业务。
+工程使用 pnpm workspace，唯一应用在 `apps/desktop/`。Electron Main、sandbox Preload 和 React Renderer 分离，通过 electron-vite 构建。模型检测和聊天流只由 Main 发起，不包含 Agent 或文件业务。
 
-Renderer 按 Workbench V1.2 拆为 Header、Sidebar、ChatWorkspace、ContextPanel 和独立素材槽位。工作台右栏支持收起/恢复；通过「添加模型」或侧栏「设置」进入独立 Settings 主页面，返回后保留右栏开合状态。Settings 采用方案 A 的纵向模型列表与横向设置行；检测/删除使用模态确认，保存操作仅在有修改时出现。聊天输入、目录授权及文件/任务导航仍禁用。三个用法示例是静态说明，不会生成会话或执行任务。角色仍使用中性占位。
+Renderer 按 Workbench V1.2 拆为 Header、Sidebar、ChatWorkspace、ContextPanel 和独立素材槽位。工作台右栏支持收起/恢复；通过「添加模型」或侧栏「设置」进入独立 Settings 主页面，返回后保留右栏开合状态。Settings 采用方案 A 的纵向模型列表与横向设置行；检测/删除使用模态确认，保存操作仅在有修改时出现。聊天现可新建/切换/删除本地会话、选择已验证模型、发送纯文本、查看流式回答和停止。Enter 发送、Shift+Enter 换行，中文输入法合成期间不发送；阅读旧消息时不强制滚到底部，可主动回到最新。目录授权、附件和文件/任务导航仍禁用，三个文件用法示例仍是后续能力说明。角色保持中性占位。
 
 模型配置支持新建、编辑、删除、启用、选择和重启恢复；只有当前配置版本通过连接检测后才能选中。保存不联网，连接测试和工具能力检测分别确认接收方、固定测试消息和可能产生的 API 用量后才发起；不自动重试。工具探针只检查回复，不执行工具。仅支持公网域名 HTTPS/443 的 Chat Completions，使用 `max_completion_tokens: 64`；不支持该参数的端点会报告协议错误，不猜测模型能力。
 
 API Key 仅在输入时短暂存在密码框，并经具名 IPC 交给 Main。使用 Electron 45 异步 safeStorage 加密，密文与普通配置分离；macOS 使用 Keychain，可能要求系统授权；Windows 代码路径未经实机验收，Linux 因无法可靠确认异步安全后端而暂拒绝保存。安全存储失败不降级明文。数据在 `app.getPath('userData')/model-providers/`，开发态另放 `development/model-providers/`，不进入仓库；不要把真实凭据用于截图或 Mock 测试。详见 [模型配置](docs/features/model-providers.md)。
+
+Issue #6 阶段 A 提供 `ChatService`、版本化会话存储、受限 SSE 和具名 `chat.*` IPC，阶段 B 通过 `useChat` 与纯文本组件接入。准备发送不联网、不写消息，发送先持久化占位再请求；跨配置历史绑定一次性许可，模态框明确接收方、消息类别/数量/字节和用量费用；停止实际 Abort，最终提交阶段明确返回 committing。离开工作台、切换/删除活动会话须确认，等待真实终态后继续。**聊天正文以明文 JSON 保存在 userData/chat/conversations 中**，开发态为 development/chat/conversations；这与 API Key 的 safeStorage 加密不同。草稿仅在 Renderer 内存按会话保留，不承诺重启恢复。没有自动重试、工具执行或自动迁移。配额、事件握手、断流和崩溃恢复边界见 [AI 对话](docs/features/chat.md)。
 
 布局以 renderer CSS 视口为准：1440px 下左右栏为 216/354px，1100px 为 216/318px，1024px 为 70/296px。中央和右栏分别滚动，Composer 留在中央底部；中央变窄时 Hero 上下排，三项示例始终保留。本期最小目标为 1024×720，不提供更窄窗口的抽屉。
 
@@ -67,9 +69,11 @@ pnpm start      # 用 Electron 加载 out/ 中的构建产物
 
 **验证状态**：Issue #1 的初始化页面已由 Owner 验证 dev/start 启动和版本 `0.1.0`，Electron 二进制缺失问题已解决。Issue #3 已完成本地源码 Review，Owner 已在真实 Electron 标准窗口确认三栏配色、欢迎页、底部输入区域和版本显示。1440×900、1100×800、1024×720 及右栏折叠态已有 Renderer 无头预览，使用模拟版本桥接，不代表真实 Electron 验收；紧凑占位文案修复另有 1440×900、1024×720 无头预览。三档实际 Electron 视口、独立滚动、右栏开合与键盘焦点、系统深色模式、减少动态效果、HMR、完整刷新及 Renderer 运行期 Node.js 隔离仍未单独验证，紧凑占位新文案待真实窗口确认。真实应用截图尚未归档；无界面测试与 Build 不能代替这些检查。`pnpm build` 只编译应用，不生成安装包或发布版本。
 
-Issue #5 的 [Owner 验收记录](https://github.com/muddyrain/bubu-ai/issues/5#issuecomment-6463177879) 确认配置保存、Key 不回显、真实连接与 Tool Calling 探针成功；这是当时的真实测试结果，不代表持续在线或执行了文件工具。退出重启后的恢复解密，以及选为工作台模型后返回的独立验收仍未确认。当前视觉可接受但不是最终 UI/UX 版本。自动化与无头预览仍全部使用 Mock，不能代替这些人工检查。
+Issue #5 的 [Owner 验收记录](https://github.com/muddyrain/bubu-ai/issues/5#issuecomment-6463177879) 确认配置保存、Key 不回显、真实连接与 Tool Calling 探针成功，Owner 在 Issue #6 开始前又确认重启恢复和工作台模型选择；这些结果不代表持续在线、执行了文件工具或已验收真实流式聊天。当前视觉可接受但不是最终 UI/UX 版本。自动化与无头预览仍全部使用 Mock，不能代替人工检查。
 
-当前主分支为 `master`；Issue #5 的唯一开发分支是 `feat/5-model-providers`，以已合并 Issue #3 的 `master` 为基线。分支、提交、推送和 PR 按授权分别执行，不自动将主分支改为 `main`。后续真实 Keychain、供应商探针及 Electron GUI 操作仍须 Owner 本次单独授权。
+Issue #6 的 [Stage C Owner 验收记录](https://github.com/muddyrain/bubu-ai/issues/6#issuecomment-6486475136) 确认真实模型回答、两轮连续流式与上下文、停止生成、会话切换及重启恢复、中文 IME/Enter/Shift+Enter/滚动，以及接收方、跨供应商历史确认和异常反馈共 6 项通过。这些是 Owner 的人工结果；自动化与隔离无头预览仍全部使用 Mock。单张实机截图只证明其中可见状态，不替代其余操作记录。Windows、其他输入法及供应商 SSE 兼容性、Keychain 异常和断电恢复仍未全面实测；停止不保证供应商已产生的用量免费。
+
+当前主分支为 `master`；Issue #6 的唯一开发分支是 `feat/6-chat-streaming`，以已合并 Issue #5 的 `master`（`c875f2c`）为基线。Owner 已授权 Commit、Push 和创建面向 `master` 的 PR，未授权合并或删除分支。
 
 ## 角色素材
 

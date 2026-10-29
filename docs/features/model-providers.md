@@ -1,6 +1,6 @@
 # 模型供应商配置
 
-> 状态：**in-progress** ｜版本：V0.1 ｜已实现并通过 Mock 测试；Owner macOS 保存、真实连接及工具探针通过，待 GitHub 最终 Review；重启解密未单独确认
+> 状态：**implemented** ｜版本：V0.1 ｜Issue #5 经 PR #7 合入 master；Owner macOS 保存、真实连接、工具探针、重启恢复及工作台选择通过
 
 ## 目标
 
@@ -8,7 +8,7 @@
 
 ## 用户操作
 
-从侧栏「设置」或工作台「添加模型」进入独立 Settings 主页面，管理多个配置：名称、协议、Base URL、Model ID、API Key 和启用状态。保存后须主动确认并测试连接，再选择当前配置；选择不发起模型请求。聊天模型切换与发送留在 Issue #6。
+从侧栏「设置」或工作台「添加模型」进入独立 Settings 主页面，管理多个配置：名称、协议、Base URL、Model ID、API Key 和启用状态。保存后须主动确认并测试连接，再选择当前配置；选择不发起模型请求。Issue #6 阶段 B 的聊天模型选择器复用同一已验证配置选择接口；跨配置历史外发另行确认。
 
 新建必须输入 Key；编辑通过 keep/replace/remove 明确处理凭据，Base URL 改变必须重新输入 Key。编辑清除旧验证并递增 revision，删除/禁用/编辑当前配置清空选中项，不自动切换收费接收方。删除本地凭据不等于撤销供应商端 Key。
 
@@ -47,4 +47,4 @@ safeStorage 仅使用异步 API，解密只在 Main 内短暂使用，支持 sho
 
 自动化使用 Mock 网络、安全存储、文件系统和 IPC，覆盖配置恢复、轮换事务、损坏版本、写入失败、认证/限流/超时、恶意 URL/DNS/重定向、取消/迟到结果和窗口生命周期。jsdom 覆盖设置表单、独立确认、错误与未保存修改。无头效果图使用 Mock 桥接，不证明真实 Keychain 或云端连通。
 
-Owner 已亲自在 macOS Electron 中验证配置保存、Key 不回显、真实连接及 Tool Calling 探针成功，见 [2026-10-28 验收记录](https://github.com/muddyrain/bubu-ai/issues/5#issuecomment-6463177879)。当前 UI 被接受为交付基线，后续单独迭代；这些结果不等于持续在线、执行了真实工具或所有 GUI 交互都已验收。退出重启后的恢复解密、Keychain 拒绝/锁定/重封装场景，以及选为工作台模型后返回的独立验收仍未确认。后续真实 Keychain 或供应商请求须 Owner 单独授权或亲自操作。跨 Provider 的会话历史外发告知留在 Issue #6；本地文件正文授权仍在后续文件 Issue。
+Owner 已亲自在 macOS Electron 中验证配置保存、Key 不回显、真实连接及 Tool Calling 探针成功，见 [2026-10-28 验收记录](https://github.com/muddyrain/bubu-ai/issues/5#issuecomment-6463177879)，并在 Issue #6 开始前确认重启恢复和工作台模型选择。当前 UI 被接受为交付基线，后续单独迭代；这些结果不等于持续在线、执行了真实工具或所有 GUI 交互都已验收。Keychain 拒绝/锁定/重封装场景仍未单独确认。后续真实 Keychain 或供应商请求须 Owner 单独授权或亲自操作。Issue #6 阶段 A 增加 Main-only 的所选配置访问及失效撤销，不改变上述探针/存储行为；跨 Provider 的会话历史外发许可见 [AI 对话](chat.md)，本地文件正文授权仍在后续文件 Issue。
