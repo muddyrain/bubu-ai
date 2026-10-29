@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET_VERSION_CHANNEL } from '../shared/ipc';
 import type { BubuApi } from '../shared/ipc';
 import { PROVIDER_CHANNELS } from '../shared/providers';
+import { CHAT_CHANNELS } from '../shared/chat';
 import type { CancelProbeOutcome, ProviderResult } from '../shared/providers';
 
 const electron = vi.hoisted(() => ({
@@ -28,7 +29,9 @@ async function loadBridge(): Promise<BubuApi> {
 describe('preload bridge', () => {
   it('exposes only named app and provider methods, with no raw Electron or Node API', async () => {
     const api = await loadBridge();
-    expect(Object.keys(api).sort()).toEqual(['app', 'providers']);
+    expect(Object.keys(api).sort()).toEqual(['app', 'chat', 'providers']);
+    expect(Object.keys(api.chat).sort()).toEqual(Object.keys(CHAT_CHANNELS).sort());
+    expect(Object.isFrozen(api.chat)).toBe(true);
     expect(Object.keys(api.app)).toEqual(['getVersion']);
     expect(Object.isFrozen(api)).toBe(true);
     expect(Object.isFrozen(api.app)).toBe(true);

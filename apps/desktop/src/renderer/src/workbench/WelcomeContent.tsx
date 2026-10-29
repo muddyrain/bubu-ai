@@ -15,7 +15,7 @@ function WelcomeHero() {
       <div className={styles.heroCopy}>
         <p className={styles.eyebrow}><Icon name="heart" />一二布布 · 陪伴式文件助理</p>
         <h2 id="welcome-title">你好呀，<br />我是 <span>布布 AI</span>！</h2>
-        <p>找文件、读资料、整理文件夹。<br />从连接模型和授权目录开始。</p>
+        <p>从一个问题，开始和布布对话。<br />文件搜索与整理功能后续开放。</p>
       </div>
       <div className={styles.artworkSlot}><MascotArtwork size="hero" /></div>
     </section>
@@ -39,7 +39,7 @@ export function WelcomeContent() {
           ))}
         </ul>
       </section>
-      <p className={styles.privacyNote}><Icon name="shield" /><span>首次使用需要配置模型并授权目录。当前界面不会读取或修改本地文件。</span></p>
+      <p className={styles.privacyNote}><Icon name="shield" /><span>纯文本聊天只需选择已验证模型，无需目录授权。当前不会读取或修改本地文件。</span></p>
     </div>
   );
 }

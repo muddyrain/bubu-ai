@@ -19,7 +19,7 @@ function OnboardingContext({ onOpenSettings, modelSummary }: { onOpenSettings: (
         </div></li>
         <li><span className={styles.stepNumber} aria-hidden="true">3</span><div>
           <h4>发起文件任务</h4>
-          <p>聊天与文件任务后续开放，当前没有运行中的任务。</p>
+          <p>当前支持纯文本聊天；文件任务后续开放，没有文件操作正在运行。</p>
         </div></li>
       </ol>
     </section>
@@ -42,7 +42,7 @@ export function ContextPanel({ id, open, onOpenSettings, modelSummary }: Context
         </section>
         <section className={styles.contextCard} aria-labelledby="privacy-title">
           <h3 id="privacy-title"><Icon name="shield" />文件隐私</h3>
-          <p>仅主动检测时向配置的供应商发送固定测试消息，不访问本地文件。</p>
+          <p>发送聊天时，会将本轮输入和完整成功的历史发送至所选模型。对话在本机明文保存，不访问本地文件。</p>
           <p>后续发送文件正文给云端模型前，需先告知接收方并获得确认。</p>
         </section>
       </section>

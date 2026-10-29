@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App';
+import { chatMock } from '../chat/test-helpers';
 import type { CancelProbeOutcome, ProbeInput, ProviderProfile, ProviderResult, ProviderSnapshot, ProvidersApi } from '../../../shared/providers';
 
 const profile: ProviderProfile={id:'00000000-0000-4000-8000-000000000001',name:'示例模型',protocol:'openai-compatible-chat-completions',
@@ -26,7 +27,7 @@ function fixture(profiles:ProviderProfile[]=[],selectedProfileId:string|null=nul
     detectTools:vi.fn<ProvidersApi['detectTools']>(async(input)=>{data.profiles.find((p)=>p.id===input.id)!.tools=evidence(input,'supported');return success();}),
     cancelProbe:vi.fn<ProvidersApi['cancelProbe']>(async()=>({ok:true,value:{status:'cancelled'}})),
   };
-  vi.stubGlobal('bubu',{app:{getVersion:async()=>'0.1.0'},providers:api});return api;
+  vi.stubGlobal('bubu',{app:{getVersion:async()=>'0.1.0'},providers:api,chat:chatMock().api});return api;
 }
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 async function open(){

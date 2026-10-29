@@ -23,6 +23,8 @@ const electron = vi.hoisted(() => ({
   registerProviderIpc: vi.fn(),
   singleInstance: vi.fn(),
   disposeProviderIpc: vi.fn(),
+  registerChatIpc: vi.fn(),
+  disposeChatIpc: vi.fn(),
   mainFrame: { url: 'about:blank' },
 }));
 
@@ -52,6 +54,7 @@ vi.mock('electron', () => ({
 }));
 
 vi.mock('./ipc', () => ({ registerAppIpc: electron.registerAppIpc }));
+vi.mock('./chat/ipc', () => ({ registerChatIpc: electron.registerChatIpc, disposeChatIpc: electron.disposeChatIpc }));
 vi.mock('./providers/ipc', () => ({ registerProviderIpc: electron.registerProviderIpc, disposeProviderIpc: electron.disposeProviderIpc }));
 
 beforeEach(() => {
@@ -109,6 +112,9 @@ describe('BrowserWindow initialization without Electron', () => {
     expect(electron.registerProviderIpc).toHaveBeenCalledWith(expect.any(Object), DEV_SERVER_URL);
     const close = electron.appOn.mock.calls.find(([name]) => name === 'before-quit')?.[1];
     close?.(); expect(electron.disposeProviderIpc).toHaveBeenCalledOnce();
+    expect(electron.registerChatIpc).toHaveBeenCalledWith(expect.any(Object), DEV_SERVER_URL);
+    const chatClose = electron.appOn.mock.calls.find(([name, listener]) => name === 'before-quit' && listener === electron.disposeChatIpc)?.[1];
+    chatClose?.(); expect(electron.disposeChatIpc).toHaveBeenCalledOnce();
   });
   it.each([true, false])('applies the security settings and preload path (development=%s)', async (development) => {
     await boot(development);

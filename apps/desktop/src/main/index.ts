@@ -4,6 +4,7 @@ import { app, BrowserWindow } from 'electron';
 import { DEV_SERVER_URL } from '../shared/ipc';
 import { registerAppIpc } from './ipc';
 import { disposeProviderIpc, registerProviderIpc } from './providers/ipc';
+import { disposeChatIpc, registerChatIpc } from './chat/ipc';
 
 async function createWindow(): Promise<void> {
   const rendererFile = join(__dirname, '../renderer/index.html');
@@ -27,6 +28,7 @@ async function createWindow(): Promise<void> {
 
   registerAppIpc(window, rendererUrl);
   registerProviderIpc(window, rendererUrl);
+  registerChatIpc(window, rendererUrl);
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-frame-navigate', (event) => {
     const mainFrame = window.webContents.mainFrame;
@@ -82,6 +84,7 @@ else app.whenReady().then(async () => {
 }).catch(handleStartupError);
 
 app.on('before-quit', disposeProviderIpc);
+app.on('before-quit', disposeChatIpc);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

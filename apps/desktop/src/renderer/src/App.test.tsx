@@ -3,12 +3,13 @@ import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+import { chatMock } from './chat/test-helpers';
 
 const getVersion = vi.fn<() => Promise<string>>();
 
 beforeEach(() => {
   getVersion.mockReset().mockResolvedValue('0.1.0');
-  vi.stubGlobal('bubu', { app: { getVersion }, providers: {
+  vi.stubGlobal('bubu', { app: { getVersion },chat:chatMock().api, providers: {
     list: vi.fn(async () => ({ ok: true, value: { profiles: [], selectedProfileId: null, cleanupPending: false } })),
   } });
 });
@@ -46,15 +47,15 @@ describe('Workbench welcome shell', () => {
     expect(within(examples).queryByRole('button')).toBeNull();
     expect(within(examples).getAllByText('后续开放')).toHaveLength(3);
     const toggle = screen.getByRole('button', { name: '收起面板' });
-    for (const button of screen.getAllByRole<HTMLButtonElement>('button')) {
-      expect(button.disabled).toBe(![screen.getByRole('button', { name: '工作台' }), toggle, screen.getByRole('button', { name: '设置' }), screen.getByRole('button', { name: '添加模型' })].includes(button));
-    }
+    expect((screen.getByRole('button',{name:'新对话'}) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('button',{name:'最近会话'}) as HTMLButtonElement).disabled).toBe(false);
+    expect(toggle).toBeTruthy();
     const input = screen.getByRole<HTMLTextAreaElement>('textbox', { name: '消息输入' });
-    expect(input.disabled).toBe(true);
+    expect(input.disabled).toBe(false);
     await user.type(input, '不要执行任何任务');
-    await user.click(screen.getByRole('button', { name: '发送消息，后续开放' }));
+    await user.click(screen.getByRole('button', { name: '发送消息' }));
     await user.click(screen.getByRole('button', { name: '文件空间，后续开放' }));
-    expect(input.value).toBe('');
+    expect(input.value).toBe('不要执行任何任务');
     expect(screen.getByRole('main', { name: '欢迎使用' })).toBeTruthy();
     expect(getVersion).toHaveBeenCalledTimes(1);
   });
@@ -90,8 +91,10 @@ describe('Workbench welcome shell', () => {
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole('button', { name: '工作台' }));
     await user.tab();
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: '设置' }));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '新对话' }));
     await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '最近会话' }));
+    await user.tab();await user.tab();
     expect(document.activeElement).toBe(toggle);
     await user.keyboard('{Enter}');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
@@ -100,16 +103,15 @@ describe('Workbench welcome shell', () => {
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole('region', { name: '欢迎内容' }));
     await user.tab();
-    expect(document.activeElement).toBe(document.body);
-    await user.tab();
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: '工作台' }));
-    await user.tab();
-    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('textbox',{name:'消息输入'}));
+    toggle.focus();
     expect(document.activeElement).toBe(toggle);
     await user.keyboard(' ');
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(document.activeElement).toBe(toggle);
     await user.tab();
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('textbox',{name:'消息输入'}));
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole('region', { name: '首次配置内容' }));
   });

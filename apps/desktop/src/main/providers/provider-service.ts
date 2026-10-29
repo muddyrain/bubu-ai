@@ -19,6 +19,7 @@ export class ProviderService {
   private closedOwners = new WeakSet<object>();
   private seenRequests = new WeakMap<object, Set<string>>();
   private cleanupPending = false;
+  private chatAccess = new Set<{ profileId: string; controller: AbortController }>();
   constructor(private readonly storage: ProfileStorage, private readonly vault: CredentialVault,
     private readonly adapter: Pick<OpenAIChatCompletionsAdapter, 'probe'>) {}
 
@@ -49,6 +50,10 @@ export class ProviderService {
   private async publish(next: ProfileStoreData): Promise<void> {
     await this.storage.commit(next);
     this.data = next;
+    for (const access of this.chatAccess) {
+      const p = next.profiles.find((item) => item.id === access.profileId);
+      if (next.selectedProfileId !== access.profileId || !p?.enabled || !p.credentialRef || p.connection?.outcome !== 'passed') access.controller.abort(new ProviderError('CONFLICT'));
+    }
     await this.collect();
   }
   private profile(id: string, revision: number): StoredProfile {
@@ -59,6 +64,51 @@ export class ProviderService {
   }
   private invalidate(id: string): void {
     for (const p of this.probes.values()) if (p.profileId === id && p.phase === 'cancellable') p.controller.abort();
+    for (const access of this.chatAccess) if (access.profileId === id) access.controller.abort(new ProviderError('CONFLICT'));
+  }
+  // Main-only access. Neither this operation nor its plaintext callback is exposed by IPC.
+  selectedChatProfile(): Promise<ProviderProfile> {
+    return this.serial(async () => {
+      const p = this.snapshot().profiles.find((item) => item.id === this.data!.selectedProfileId);
+      if (!p?.enabled || !p.hasKey || p.connection?.outcome !== 'passed' || p.connection.revision !== p.revision) throw new ProviderError('NOT_READY');
+      return p;
+    });
+  }
+  async withSelectedChatAccess<T>(target: ProfileTarget, outer: AbortSignal,
+    use: (profile: ProviderProfile, key: string, signal: AbortSignal) => Promise<T>): Promise<T> {
+    if (this.chatAccess.size) throw new ProviderError('BUSY');
+    const access = { profileId: target.id, controller: new AbortController() };
+    this.chatAccess.add(access);
+    const signal = AbortSignal.any([outer, access.controller.signal]);
+    const active = () => {
+      if (signal.aborted) throw signal.reason;
+      const p = this.profile(target.id, target.expectedRevision);
+      if (this.data!.selectedProfileId !== p.id || !p.enabled || !p.credentialRef || p.connection?.outcome !== 'passed' || p.connection.revision !== p.revision) throw new ProviderError('NOT_READY');
+      return p;
+    };
+    const preparing = this.serial(async () => {
+      const p = active();
+      const decrypted = await this.vault.decrypt(await this.storage.readCredential(p.credentialRef!));
+      active();
+      if (decrypted.rotated) {
+        const ref = randomUUID(); await this.storage.putCredential(ref, decrypted.rotated); active();
+        const next = structuredClone(this.data!); next.profiles.find((item) => item.id === p.id)!.credentialRef = ref;
+        await this.publish(next); active();
+      }
+      return { profile: this.snapshot().profiles.find((item) => item.id === p.id)!, key: decrypted.key };
+    });
+    try {
+      const value = await abortable(preparing, signal);
+      active();
+      // Network lifetime is deliberately OUTSIDE serial().
+      return await use(value.profile, value.key, signal);
+    } catch (error) {
+      if (signal.aborted) throw signal.reason;
+      throw error;
+    } finally {
+      // Cancelled queued preparation keeps capacity until it really leaves the queue.
+      void preparing.then(() => this.chatAccess.delete(access), () => this.chatAccess.delete(access));
+    }
   }
   list(): Promise<ProviderSnapshot> { return this.serial(async () => this.snapshot()); }
   save(input: SaveProviderInput): Promise<ProviderSnapshot> {
@@ -102,6 +152,7 @@ export class ProviderService {
     return this.serial(async () => {
       const p = this.profile(input.id, input.expectedRevision);
       if (!p.enabled || !p.credentialRef || p.connection?.outcome !== 'passed') throw new ProviderError('NOT_READY');
+      for (const access of this.chatAccess) access.controller.abort(new ProviderError('CONFLICT'));
       const next = structuredClone(this.data!);
       next.selectedProfileId = p.id;
       await this.publish(next);
