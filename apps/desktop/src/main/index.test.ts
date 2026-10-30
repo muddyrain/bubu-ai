@@ -1,10 +1,22 @@
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BrowserWindowConstructorOptions, Event, WebContentsWillFrameNavigateEventParams } from 'electron';
+import type { BrowserWindowConstructorOptions, Event, Session, WebContents, WebContentsWillFrameNavigateEventParams } from 'electron';
 import { DEV_SERVER_URL } from '../shared/ipc';
 
 type NavigationEvent = Event<WebContentsWillFrameNavigateEventParams>;
+type RequestHandler = NonNullable<Parameters<Session['setPermissionRequestHandler']>[0]>;
+type CheckHandler = NonNullable<Parameters<Session['setPermissionCheckHandler']>[0]>;
+interface MockFrame { url: string; detached: boolean; parent: MockFrame | null }
+interface MockWindowState {
+  destroyed: boolean;
+  focused: boolean;
+  contentsDestroyed: boolean;
+  contentsFocused: boolean;
+  isDestroyed: () => boolean;
+  isFocused: () => boolean;
+  webContents: { mainFrame: MockFrame; isDestroyed: () => boolean; isFocused: () => boolean };
+}
 const mainDirectory = fileURLToPath(new URL('.', import.meta.url));
 
 const electron = vi.hoisted(() => ({
@@ -17,15 +29,16 @@ const electron = vi.hoisted(() => ({
   loadFile: vi.fn<(path: string) => Promise<void>>(),
   contentsOn: vi.fn<(name: string, listener: (event: NavigationEvent) => void) => void>(),
   setWindowOpenHandler: vi.fn<(handler: () => { action: string }) => void>(),
-  setPermissionRequestHandler: vi.fn<(handler: (contents: unknown, permission: string, callback: (allowed: boolean) => void) => void) => void>(),
-  setPermissionCheckHandler: vi.fn<(handler: () => boolean) => void>(),
+  setPermissionRequestHandler: vi.fn<(handler: RequestHandler) => void>(),
+  setPermissionCheckHandler: vi.fn<(handler: CheckHandler) => void>(),
   registerAppIpc: vi.fn(),
   registerProviderIpc: vi.fn(),
   singleInstance: vi.fn(),
   disposeProviderIpc: vi.fn(),
   registerChatIpc: vi.fn(),
   disposeChatIpc: vi.fn(),
-  mainFrame: { url: 'about:blank' },
+  mainFrame: { url: 'about:blank', detached: false, parent: null as MockFrame | null },
+  windows: [] as MockWindowState[],
 }));
 
 vi.mock('electron', () => ({
@@ -38,11 +51,23 @@ vi.mock('electron', () => ({
   },
   BrowserWindow: class {
     static getAllWindows = electron.getAllWindows;
-    constructor(options: BrowserWindowConstructorOptions) { electron.construct(options); }
+    destroyed = false;
+    focused = true;
+    contentsDestroyed = false;
+    contentsFocused = true;
+    isDestroyed = () => this.destroyed;
+    isFocused = () => this.focused;
+    constructor(options: BrowserWindowConstructorOptions) {
+      electron.construct(options);
+      electron.mainFrame = this.webContents.mainFrame;
+      electron.windows.push(this);
+    }
     loadURL = electron.loadURL;
     loadFile = electron.loadFile;
     webContents = {
-      mainFrame: electron.mainFrame,
+      mainFrame: { url: 'about:blank', detached: false, parent: null as MockFrame | null },
+      isDestroyed: () => this.contentsDestroyed,
+      isFocused: () => this.contentsFocused,
       on: electron.contentsOn,
       setWindowOpenHandler: electron.setWindowOpenHandler,
       session: {
@@ -60,6 +85,7 @@ vi.mock('./providers/ipc', () => ({ registerProviderIpc: electron.registerProvid
 beforeEach(() => {
   vi.resetModules();
   vi.resetAllMocks();
+  electron.windows.length = 0;
   electron.mainFrame.url = 'about:blank';
   electron.whenReady.mockResolvedValue(undefined);
   electron.singleInstance.mockReturnValue(true);
@@ -158,9 +184,9 @@ describe('BrowserWindow initialization without Electron', () => {
     if (!open || !request || !check) throw new Error('Security handler is missing');
     expect(open()).toEqual({ action: 'deny' });
     const callback = vi.fn();
-    request({}, 'media', callback);
+    request({} as WebContents, 'media', callback, { isMainFrame: false, requestingUrl: '' });
     expect(callback).toHaveBeenCalledExactlyOnceWith(false);
-    expect(check()).toBe(false);
+    expect(check(null, 'media', '', { isMainFrame: false })).toBe(false);
     for (const registration of [electron.contentsOn, electron.setWindowOpenHandler, electron.setPermissionRequestHandler, electron.setPermissionCheckHandler]) {
       expect(registration.mock.invocationCallOrder[0]).toBeLessThan(electron.loadURL.mock.invocationCallOrder[0]!);
     }
@@ -303,5 +329,190 @@ describe('startup diagnostics', () => {
       phase: 'activate', errorType: 'TypeError', code: 'ERR_FAILED',
     }));
     expect(electron.quit).toHaveBeenCalledOnce();
+  });
+});
+
+interface PermissionInput { contents: unknown; permission: string; origin: unknown; details: unknown }
+function permissionFixture(index = 0) {
+  const state = electron.windows[index];
+  const requestHandler = electron.setPermissionRequestHandler.mock.calls[index]?.[0];
+  const checkHandler = electron.setPermissionCheckHandler.mock.calls[index]?.[0];
+  if (!state || !requestHandler || !checkHandler) throw new Error('Permission registration missing');
+  const url = state.webContents.mainFrame.url;
+  const input: PermissionInput = {
+    contents: state.webContents, permission: 'clipboard-sanitized-write',
+    origin: new URL(url).origin, details: { isMainFrame: true, requestingUrl: url },
+  };
+  return {
+    state, url, input,
+    request(overrides: Partial<PermissionInput> = {}, callback = vi.fn<(allowed: boolean) => void>()) {
+      const supplied = { ...input, ...overrides };
+      requestHandler(supplied.contents as WebContents, supplied.permission as Parameters<RequestHandler>[1], callback,
+        supplied.details as Parameters<RequestHandler>[3]);
+      return callback;
+    },
+    check(overrides: Partial<PermissionInput> = {}) {
+      const supplied = { ...input, ...overrides };
+      return checkHandler(supplied.contents as WebContents | null, supplied.permission as Parameters<CheckHandler>[1],
+        supplied.origin as string, supplied.details as Parameters<CheckHandler>[3]);
+    },
+  };
+}
+type PermissionFixture = ReturnType<typeof permissionFixture>;
+function expectPermission(f: PermissionFixture, allowed: boolean, overrides: Partial<PermissionInput> = {}) {
+  expect(f.request(overrides)).toHaveBeenCalledExactlyOnceWith(allowed);
+  expect(f.check(overrides)).toBe(allowed);
+}
+
+const invalidPermissionSources: [string, (f: PermissionFixture) => void][] = [
+  ['foreign WebContents sharing the main frame', f => { f.input.contents = { ...f.state.webContents }; }],
+  ['null WebContents / non-document source', f => { f.input.contents = null; }],
+  ['child frame at the same URL', f => { f.input.details = { isMainFrame: false, requestingUrl: f.url }; }],
+  ['missing metadata', f => { f.input.details = undefined; }],
+  ['null metadata', f => { f.input.details = null; }],
+  ['missing main-frame flag', f => { f.input.details = { requestingUrl: f.url }; }],
+  ['non-boolean main-frame flag', f => { f.input.details = { isMainFrame: 'true', requestingUrl: f.url }; }],
+  ['missing requesting URL', f => { f.input.details = { isMainFrame: true }; }],
+  ['empty requesting URL', f => { f.input.details = { isMainFrame: true, requestingUrl: '' }; }],
+  ['different URL', f => { f.input.details = { isMainFrame: true, requestingUrl: 'https://foreign.example/' }; }],
+  ['URL prefix only', f => { f.input.details = { isMainFrame: true, requestingUrl: f.url + 'another-page' }; }],
+  ['URL query', f => { f.input.details = { isMainFrame: true, requestingUrl: f.url + '?other=1' }; }],
+  ['URL fragment', f => { f.input.details = { isMainFrame: true, requestingUrl: f.url + '#other' }; }],
+  ['origin passed in place of full URL', f => { f.input.details = { isMainFrame: true, requestingUrl: new URL(f.url).origin }; }],
+  ['unfocused window', f => { f.state.focused = false; }],
+  ['unfocused WebContents', f => { f.state.contentsFocused = false; }],
+  ['destroyed window', f => { f.state.destroyed = true; }],
+  ['destroyed WebContents', f => { f.state.contentsDestroyed = true; }],
+  ['unknown window focus', f => { f.state.focused = undefined as unknown as boolean; }],
+  ['unknown destruction state', f => { f.state.destroyed = undefined as unknown as boolean; }],
+  ['main frame navigated away', f => { f.state.webContents.mainFrame.url = 'about:blank'; }],
+  ['detached main frame', f => { f.state.webContents.mainFrame.detached = true; }],
+  ['unknown frame attachment', f => { f.state.webContents.mainFrame.detached = undefined as unknown as boolean; }],
+  ['unexpected frame parent', f => { f.state.webContents.mainFrame.parent = { url: f.url, parent: null, detached: false }; }],
+  ['unavailable main frame', f => { Object.defineProperty(f.state.webContents, 'mainFrame', { get() { throw Error('Mock native frame failure'); } }); }],
+  ['throwing native focus lookup', f => { vi.spyOn(f.state, 'isFocused').mockImplementation(() => { throw Error('Mock native focus failure'); }); }],
+];
+
+describe.each([true, false])('clipboard write permission (development=%s)', development => {
+  it('allows the focused trusted main document through both Electron 45 handlers', async () => {
+    await boot(development);
+    expectPermission(permissionFixture(), true);
+  });
+
+  it.each([
+    'clipboard-read', 'deprecated-sync-clipboard-read', 'clipboard-write',
+    'media', 'display-capture', 'geolocation', 'fileSystem', 'notifications', 'unknown',
+    'clipboard-sanitized-write ', 'CLIPBOARD-SANITIZED-WRITE', '',
+  ])('keeps permission %j denied even for the trusted document', async permission => {
+    await boot(development);
+    expectPermission(permissionFixture(), false, { permission });
+  });
+
+  it.each(invalidPermissionSources)('rejects %s', async (_name, mutate) => {
+    await boot(development);
+    const f = permissionFixture(); mutate(f);
+    expectPermission(f, false);
+  });
+
+  it('rechecks focus between Check and Request without caching an earlier allow', async () => {
+    await boot(development); const f = permissionFixture();
+    expect(f.check()).toBe(true);
+    f.state.focused = false;
+    expectPermission(f, false);
+    f.state.focused = true;
+    expectPermission(f, true);
+  });
+
+  it('checks the current state when focus changes before a new permission check', async () => {
+    await boot(development); const f = permissionFixture();
+    f.state.focused = false; expect(f.check()).toBe(false);
+    f.state.focused = true; expectPermission(f, true);
+    f.state.contentsFocused = false; expectPermission(f, false);
+  });
+
+  it('rechecks navigation and attachment between Check and Request', async () => {
+    await boot(development); const f = permissionFixture();
+    expect(f.check()).toBe(true);
+    f.state.webContents.mainFrame.url = 'https://foreign.example/'; expectPermission(f, false);
+    f.state.webContents.mainFrame.url = f.url;
+    f.state.webContents.mainFrame.detached = true; expectPermission(f, false);
+  });
+
+  it.each(['window', 'contents'] as const)('rejects %s destruction after a positive Check', async target => {
+    await boot(development); const f = permissionFixture();
+    expect(f.check()).toBe(true);
+    if (target === 'window') f.state.destroyed = true;
+    else f.state.contentsDestroyed = true;
+    expectPermission(f, false);
+  });
+
+  it('binds recreated-window handlers to the new window, never its predecessor', async () => {
+    await boot(development); const old = permissionFixture();
+    expect(old.check()).toBe(true); old.state.destroyed = true;
+    activate(); await vi.dynamicImportSettled();
+    const current = permissionFixture(1);
+    expect(current.state.webContents).not.toBe(old.state.webContents);
+    expect(current.state.webContents.mainFrame).not.toBe(old.state.webContents.mainFrame);
+    expectPermission(old, false);
+    expectPermission(old, false, { contents: current.state.webContents });
+    expectPermission(current, true);
+    expectPermission(current, false, { contents: old.state.webContents });
+  });
+
+  it('re-evaluates every repeated request without authorizing reads or later invalid sources', async () => {
+    await boot(development); const f = permissionFixture();
+    for (let i = 0; i < 3; i++) {
+      expectPermission(f, true);
+      expectPermission(f, false, { permission: 'clipboard-read' });
+      expectPermission(f, false, { details: { isMainFrame: false, requestingUrl: f.url } });
+    }
+    f.state.focused = false;
+    for (let i = 0; i < 3; i++) expectPermission(f, false);
+  });
+
+  it('does not call the Request callback a second time if that callback throws', async () => {
+    await boot(development); const f = permissionFixture();
+    const callback = vi.fn<(allowed: boolean) => void>(() => { throw Error('Mock callback failure'); });
+    expect(() => f.request({}, callback)).toThrow('Mock callback failure');
+    expect(callback).toHaveBeenCalledExactlyOnceWith(true);
+  });
+
+  it('rejects missing Check origin without confusing it with requestingUrl', async () => {
+    await boot(development); const f = permissionFixture();
+    expect(f.check({ origin: undefined })).toBe(false);
+    expect(f.check({ origin: null })).toBe(false);
+    expect(f.check({ details: undefined })).toBe(false);
+    expect(f.check({ details: { isMainFrame: true } })).toBe(false);
+  });
+});
+
+describe('clipboard document URL boundaries', () => {
+  it.each([
+    'http://localhost:5173/', 'http://127.0.0.1:5174/', 'https://127.0.0.1:5173/',
+    'http://127.0.0.1:5173.evil/', 'http://127.0.0.1:5173',
+  ])('does not accept an alternate development URL: %s', async requestingUrl => {
+    await boot(); const f = permissionFixture();
+    expectPermission(f, false, { details: { isMainFrame: true, requestingUrl } });
+  });
+
+  it('accepts only the two exact development Origin serializations, with a separately validated URL', async () => {
+    await boot(); const f = permissionFixture();
+    expect(f.check({ origin: new URL(DEV_SERVER_URL).origin })).toBe(true);
+    expect(f.check({ origin: DEV_SERVER_URL })).toBe(true);
+    for (const origin of ['null', '', 'http://localhost:5173', 'http://127.0.0.1:5174', DEV_SERVER_URL + 'another-page']) {
+      expect(f.check({ origin })).toBe(false);
+    }
+    expect(f.check({ origin: DEV_SERVER_URL, details: undefined })).toBe(false);
+  });
+
+  it('never treats file/null Origin alone as a trusted production page', async () => {
+    await boot(false); const f = permissionFixture();
+    expectPermission(f, true);
+    for (const origin of ['null', 'file://', '']) {
+      expect(f.check({ origin, details: undefined })).toBe(false);
+      expect(f.check({ origin, details: { isMainFrame: true, requestingUrl: 'file:///tmp/index.html' } })).toBe(false);
+      expect(f.check({ origin, contents: null })).toBe(false);
+    }
+    expectPermission(f, false, { details: { isMainFrame: true, requestingUrl: DEV_SERVER_URL } });
   });
 });

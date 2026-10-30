@@ -4,6 +4,7 @@ import { ProviderSettings } from '../providers/ProviderSettings';
 import { useProviders } from '../providers/useProviders';
 import { useChat } from '../chat/useChat';
 import { SessionList } from '../chat/SessionList';
+import { usableModel } from '../chat/model-options';
 import chatStyles from '../chat/Chat.module.css';
 import { ChatWorkspace } from './ChatWorkspace';
 import { ContextPanel } from './ContextPanel';
@@ -14,11 +15,15 @@ import styles from './WorkbenchShell.module.css';
 
 export function WorkbenchShell(props: WorkbenchHeaderProps) {
   const [view, setView] = useState<'workbench' | 'settings'>('workbench');
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const panelToggle = useRef<HTMLButtonElement>(null);
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState<{ action: () => void; trigger: HTMLElement | null }>();
   const panelId = useId();
   const providers = useProviders();
+  // 初始空快照只是占位；成功读取（包括空列表）会接纳新快照，关闭提示不会改变读取结果。
+  const [initialProviderSnapshot] = useState(providers.snapshot);
+  const modelUnavailable = !providers.loading && providers.snapshot === initialProviderSnapshot;
   const chat = useChat(view==='workbench');
   const [sessionMenu,setSessionMenu] = useState(false);
   const [chatAction,setChatAction] = useState<{action:()=>void|Promise<unknown>;title:string;description:string;trigger:HTMLElement|null}>();
@@ -40,10 +45,8 @@ export function WorkbenchShell(props: WorkbenchHeaderProps) {
     description:'将删除这段本地对话及未保存的草稿，无法撤销。若正在生成，会先停止并等待保存；这不会删除供应商端可能保留的数据。',trigger:document.activeElement as HTMLElement|null});};
   const sessions=<SessionList sessions={chat.sessions} currentId={chat.snapshot?.conversation.id} loading={chat.loading} onOpen={openSession} onDelete={deleteSession}/>;
   const workbenchRef = useRef<HTMLButtonElement>(null);
-  const selected = providers.snapshot.profiles.find((p) => p.id === providers.snapshot.selectedProfileId);
-  const modelLabel = selected ? `当前模型：${selected.name}` : providers.snapshot.profiles.length ? '已保存配置 · 未选择模型' : '未配置模型';
-  const modelSummary = selected ? `已选中 ${selected.name}。上次检测记录可在设置中查看。` :
-    providers.snapshot.profiles.length ? `已保存 ${providers.snapshot.profiles.length} 个配置，尚未选择模型。` : '未配置模型，添加后可主动测试连接。';
+  const selected = providers.snapshot.profiles.find((p) => p.id === providers.snapshot.selectedProfileId && usableModel(p));
+  const modelLabel = providers.loading ? '正在读取模型配置…' : selected ? `当前模型：${selected.name}` : modelUnavailable ? '模型配置暂不可用' : providers.snapshot.profiles.length ? '已保存配置 · 未选择模型' : '未配置模型';
 
   const requestAction = (action: () => void) => {
     if (dirty) setPending({ action, trigger: document.activeElement as HTMLElement | null });
@@ -71,7 +74,7 @@ export function WorkbenchShell(props: WorkbenchHeaderProps) {
 
   return (
     <div className={styles.stage}>
-      <div className={styles.frame}>
+      <div className={styles.frame} data-view={view}>
         <WorkbenchHeader {...props} view={view} modelLabel={modelLabel} chatting={Boolean(chat.snapshot?.conversation.messages.length)} />
         <div className={styles.layout} data-panel-open={panelOpen} data-view={view}>
           <Sidebar view={view} workbenchRef={workbenchRef} workbenchDisabled={view === 'settings' && providers.busy && !providers.requestId}
@@ -79,12 +82,13 @@ export function WorkbenchShell(props: WorkbenchHeaderProps) {
             onNew={()=>requestChatAction(async()=>{await chat.create();})} onSessions={()=>setSessionMenu(true)}/>
           {view === 'settings' ? <ProviderSettings state={providers} dirty={dirty} onDirty={setDirty}
             onRequestAction={requestAction} onBack={returnWorkbench} /> : <>
-            <ChatWorkspace panelId={panelId} panelOpen={panelOpen} modelLabel={selected?.name}
-              chat={chat} providers={providers.snapshot} modelBusy={providers.busy} providerError={providers.error} onDismissProviderError={providers.dismissError} onSelectModel={id=>{
+            <ChatWorkspace panelId={panelId} panelOpen={panelOpen} toggleRef={panelToggle} modelLabel={selected?.name} onOpenSettings={openSettings}
+              chat={chat} providers={providers.snapshot} modelLoading={providers.loading} modelUnavailable={modelUnavailable} modelBusy={providers.busy} providerError={providers.error} onDismissProviderError={providers.dismissError} onSelectModel={id=>{
                 const p=providers.snapshot.profiles.find(entry=>entry.id===id);if(p&&!chat.busy)void providers.execute(()=>window.bubu.providers.select({id:p.id,expectedRevision:p.revision}));
               }}
-              onTogglePanel={() => setPanelOpen((open) => !open)} />
-            <ContextPanel id={panelId} open={panelOpen} onOpenSettings={openSettings} modelSummary={modelSummary} />
+              onTogglePanel={() => setPanelOpen(!panelOpen)} />
+            <ContextPanel id={panelId} open={panelOpen} onOpenSettings={openSettings} model={selected} modelLoading={providers.loading} modelUnavailable={modelUnavailable} snapshot={chat.snapshot} committing={chat.phase==='committing'}
+              onClose={()=>{setPanelOpen(false);panelToggle.current?.focus();}} />
           </>}
         </div>
         {sessionMenu&&view==='workbench'&&!chatAction&&<ModalDialog title="本地会话" description="对话以明文保存在本机；不会自动发送历史。" confirmLabel="完成" onConfirm={()=>setSessionMenu(false)} onClose={()=>setSessionMenu(false)}>{sessions}</ModalDialog>}

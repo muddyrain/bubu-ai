@@ -12,7 +12,7 @@ export function WorkbenchHeader({ version, versionFailed, modelLabel, view = 'wo
   const versionLabel = versionFailed ? '版本暂不可用' : version ? `应用版本 ${version}` : '版本读取中…';
 
   return (
-    <header className={styles.header} aria-label="应用信息">
+    <header className={styles.header} data-view={view} aria-label="应用信息">
       <div className={styles.brand}>
         <strong>Bubu AI</strong>
         <span className={styles.brandTag}>本地 AI 工作伙伴</span>

@@ -1,17 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage, ChatSnapshot } from '../../../shared/chat';
 import { chatErrorText } from './chat-errors';
+import { MessageContent } from './MessageContent';
+import { CopyButton } from './CopyButton';
 import styles from './Chat.module.css';
 export function MessageItem({message,persisted,committing=false}:{message:ChatMessage;persisted:boolean;committing?:boolean}){
   const assistant=message.role==='assistant';
   const terminal=['completed','failed','stopped'].includes(message.status);
-  const status=message.status==='completed'?'回答完成':message.status==='stopped'?'已停止 · 部分回答':message.status==='failed'?'本轮失败':committing?'正在保存':message.status==='streaming'?'正在生成':'等待模型回复';
+  const waiting=message.status==='pending'||message.status==='streaming';
+  const hasText=Boolean(message.text.trim()),partial=hasText?' · 部分回答':'';
+  const status=message.status==='completed'?'回答完成':message.status==='stopped'?'已停止'+partial:message.status==='failed'?(message.errorCode==='OUTPUT_TRUNCATED'?'回复已截断'+partial:'本轮失败'):committing?'正在保存':message.status==='streaming'?'正在生成':'等待模型回复';
   return <article className={styles.message} data-role={message.role} aria-label={assistant?'AI 回复':'你的消息'}>
-    <div className={styles.messageAvatar} aria-hidden="true">{assistant?'布':'你'}</div>
-    <div className={styles.messageBody}><header><strong>{assistant?'布布': '你'}</strong>{assistant&&<span>{message.recipient.name}</span>}</header>
-      <div className={styles.messageText}>{message.text|| (assistant?'正在等待可见文本…':'')}</div>
-      {assistant&&<p className={styles.messageStatus} role="status">{status}{terminal?(persisted?' · 已保存':' · 尚未保存'):''}</p>}
-      {assistant&&message.errorCode&&<p className={styles.error}>{chatErrorText(message.errorCode)}{message.status!=='completed'&&message.text?' 本轮部分回答不会自动发送到后续上下文。':''}</p>}
+    <div className={styles.messageBody}><header className={styles.messageHeading}><strong>{assistant?'布布': '你'}</strong>{assistant&&<span title={`${message.recipient.name} · ${message.recipient.modelId}`}>{message.recipient.name}</span>}</header>
+      {assistant?<MessageContent text={hasText?message.text:waiting?'正在等待可见文本…':'本轮没有收到可显示的文本。'} />:<div className={styles.userText}>{message.text}</div>}
+      {assistant&&<footer className={styles.messageFooter}>
+        <p className={styles.messageStatus} role="status">{status}{terminal?(persisted?' · 已保存':' · 尚未保存'):''}</p>
+        {terminal&&hasText&&<CopyButton text={message.text} label="回答" />}
+      </footer>}
+      {assistant&&message.errorCode&&<p className={styles.error}>{chatErrorText(message.errorCode)}{message.status!=='completed'&&hasText?' 本轮部分回答不会自动发送到后续上下文。':''}</p>}
     </div>
   </article>;
 }

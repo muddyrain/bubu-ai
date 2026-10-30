@@ -1,6 +1,6 @@
 # AI 对话
 
-> 状态：**implemented（普通文本聊天）** ｜版本：V0.1 ｜Issue #6 Stage A/B 源码 Review、P1 Close-out 及 Owner 真实 macOS Electron 验收通过，待 GitHub 最终 Review；下文文件/工具能力仍 planned
+> 状态：**implemented（普通文本聊天）** ｜版本：V0.1 ｜Issue #6 经 PR #8 合入 master；Issue #9 方案 A 聊天 UX 本地实现、待源码/视觉 Review；下文文件/工具能力仍 planned
 
 ## 用户价值与入口
 
@@ -64,11 +64,15 @@ SSE 以增量 UTF-8 解码，处理 CR/LF/CRLF、多行 data、注释、role-onl
 
 `SessionList` 提供新建、切换、查看和确认删除。1024px 图标侧栏通过「最近会话」模态列表访问；普通宽度同时提供侧栏列表。切换前保留按会话划分的内存草稿，删除确认同时清理该草稿；草稿不承诺跨重启保存。离开、切换、新建和删除时若有生成，先确认停止，等待 Main 真正结束后操作；committing 等待保存。等待过程中可选择留在当前页面，不会在保存完成后再偷偷导航。
 
-`MessageList/MessageItem` 只安全展示纯文本与结构化消息状态，不解析 HTML/Markdown，不将 AI 文字包装成文件执行结果。生成时跟随底部；读者向上滚动后停止跟随，并提供「回到最新」。`ChatComposer` 支持中文 composition/isComposing/keyCode229 防误发送、Enter/Shift+Enter、UTF-8 16KiB 上限与停止。已保存/尚未保存、部分回答、截断、过滤和网络/凭据/配额错误分别反馈。未保存终态的会话不继续发送。
+`MessageList/MessageItem` 安全展示文本与结构化消息状态，不将 AI 文字包装成文件执行结果。Issue #9 的 `MessageContent` 只用 React 文本节点及固定标签做有限格式化：段落、保留换行、ATX 标题（1–6 级映射为页面内 h2–h6）、平级无序/有序列表、双星号粗体、单反引号行内代码，以及三字符以上反引号或波浪线围栏代码。未闭合围栏按已到达的代码显示，代码独立横向滚动、无高亮或执行。它不是完整 Markdown：不解析嵌套列表、表格、引用、HTML、图片、链接或自动链接；这些语法保留为不可执行文本，没有网络图片或任意 HTML 注入，也没有新增解析依赖。
+
+用户主动点击才复制整条原始回答（含文本格式标记）或不含围栏的代码正文；`CopyButton` 仅尝试 `navigator.clipboard.writeText`，不读取剪贴板，不新增 Main/Preload IPC，也不放宽现有权限。API 不可用或系统拒绝时不宣称复制成功，复用 ModalDialog 提供只读文本和手动选择，用户自行按 ⌘C/Ctrl+C。真实 Electron 的直接复制/系统权限仍待人工验收；自动化与无头检查使用 Mock 剪贴板。复制不触发模型请求。
+
+生成时跟随底部；读者向上滚动后停止跟随，并提供「回到最新」。`ChatComposer` 支持中文 composition/isComposing/keyCode229 防误发送、Enter/Shift+Enter、UTF-8 16KiB 上限与停止。已保存/尚未保存、部分回答、截断、过滤和网络/凭据/配额错误分别反馈。未保存终态的会话不继续发送。发送回执异常但 Main 尚在生成时，显示正在核实状态并保留停止入口；不自动重发，不改用 Renderer 定时器模拟完成。
 
 `ModelSelector` 只列出启用、有 Key、当前 revision 连接验证通过的配置，复用 providers.select，不发起探针。首次发送前输入区显示模型与实际域名；换配置继续成功历史时，真正模态框列出 Main 计划接收方、Model ID、用户消息（含本轮输入）/完整 AI 回答数量、字节和用量，默认取消，支持 Escape、Tab 焦点约束与返回；取消保留输入，确认前 0 send。
 
-组件与 Mock bridge 集成测试覆盖稳定订阅、早到事件、迟到回执、状态/焦点/输入法、取消与导航、跨配置确认和滚动。1440×900、1100×800、1024×720 的隔离无头图片明确标记 Mock，不能代替真实 Electron、操作系统、供应商流式与 Keychain 验收。Markdown、附件、工具和文件业务仍未实现。UI 契约继续以 [组件设计](../design/COMPONENTS-AND-EVENTS.md) 为准。
+组件与 Mock bridge 集成测试覆盖稳定订阅、早到事件、迟到回执、状态/焦点/输入法、取消与导航、跨配置确认和滚动。1440×900、1100×800、1024×720 的隔离无头图片明确标记 Mock，不能代替真实 Electron、操作系统、供应商流式与 Keychain 验收。完整 Markdown、附件、工具和文件业务仍未实现。UI 契约继续以 [组件设计](../design/COMPONENTS-AND-EVENTS.md) 为准。
 
 Owner 的 [Stage C 实机记录](https://github.com/muddyrain/bubu-ai/issues/6#issuecomment-6486475136) 确认 macOS Electron 的真实模型回答、两轮流式与上下文、停止、会话切换与重启恢复、中文 IME/键盘/滚动，以及接收方/跨供应商历史确认/异常反馈共 6 项通过。单张截图只直接证明其可见的已保存回答、生成占位和停止按钮，其余以 Owner 逐项操作记录为证；自动化仍全部 Mock。Windows、其他输入法与供应商 SSE、Keychain 异常及真实断电恢复未全面实测。100ms IME 防误发窗口仍是启发式；回执异常而模型仍生成时的错误文案、已有模型时右侧引导文案留待后续定向优化，不影响停止或触发自动重发。
 

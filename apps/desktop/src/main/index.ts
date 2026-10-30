@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { app, BrowserWindow } from 'electron';
+import type { PermissionCheckHandlerHandlerDetails, WebContents } from 'electron';
 import { DEV_SERVER_URL } from '../shared/ipc';
 import { registerAppIpc } from './ipc';
 import { disposeProviderIpc, registerProviderIpc } from './providers/ipc';
@@ -9,6 +10,7 @@ import { disposeChatIpc, registerChatIpc } from './chat/ipc';
 async function createWindow(): Promise<void> {
   const rendererFile = join(__dirname, '../renderer/index.html');
   const rendererUrl = __DEV__ ? DEV_SERVER_URL : pathToFileURL(rendererFile).href;
+  const developmentOrigin = new URL(DEV_SERVER_URL).origin;
   const window = new BrowserWindow({
     title: 'Bubu AI',
     width: 1100,
@@ -41,10 +43,38 @@ async function createWindow(): Promise<void> {
     if (!trustedReload) event.preventDefault();
   });
   window.webContents.on('will-redirect', (event) => event.preventDefault());
-  window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => {
-    callback(false);
+  // Recheck native state on every call. This grants a document capability,
+  // not permission tied to a particular button, gesture or text format.
+  const canWriteClipboard = (
+    contents: WebContents | null,
+    permission: string,
+    details: Pick<PermissionCheckHandlerHandlerDetails, 'isMainFrame' | 'requestingUrl'> | undefined,
+  ): boolean => {
+    try {
+      if (
+        permission !== 'clipboard-sanitized-write' ||
+        window.isDestroyed() !== false ||
+        !contents || contents !== window.webContents ||
+        contents.isDestroyed() !== false ||
+        window.isFocused() !== true || contents.isFocused() !== true ||
+        details?.isMainFrame !== true || details.requestingUrl !== rendererUrl
+      ) return false;
+      const mainFrame = contents.mainFrame;
+      return mainFrame.detached === false && mainFrame.parent === null && mainFrame.url === rendererUrl;
+    } catch {
+      return false;
+    }
+  };
+  window.webContents.session.setPermissionRequestHandler((contents, permission, callback, details) => {
+    callback(canWriteClipboard(contents, permission, details));
   });
-  window.webContents.session.setPermissionCheckHandler(() => false);
+  window.webContents.session.setPermissionCheckHandler((contents, permission, requestingOrigin, details) => {
+    // Origin is not a document URL, especially for file pages. The fourth
+    // argument supplies the full requestingUrl checked by the shared predicate.
+    if (typeof requestingOrigin !== 'string' ||
+      (__DEV__ && requestingOrigin !== developmentOrigin && requestingOrigin !== DEV_SERVER_URL)) return false;
+    return canWriteClipboard(contents, permission, details);
+  });
 
   if (__DEV__) {
     await window.loadURL(rendererUrl);

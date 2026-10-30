@@ -20,7 +20,7 @@
 
 | 功能 | 现状 |
 |---|---|
-| [AI 对话](features/chat.md) | implemented（普通文本）：Stage A/B 与 P1 Close-out 通过，Owner macOS 真实流式等 6 项验收通过，待 GitHub 最终 Review；文件/工具仍 planned |
+| [AI 对话](features/chat.md) | implemented（普通文本）：Issue #6 已经 PR #8 合并；Issue #9 聊天 UX 本地实现、待源码/视觉 Review；文件/工具仍 planned |
 | [模型供应商](features/model-providers.md) | implemented：Issue #5 已合并，Owner 真实连接、工具探针、重启恢复及工作台选择通过 |
 | [本地文件访问](features/local-files.md) | planned |
 | [文件整理](features/file-operations.md) | planned |

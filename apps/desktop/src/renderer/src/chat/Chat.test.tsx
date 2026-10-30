@@ -4,7 +4,8 @@ import { act,cleanup,fireEvent,render,screen,waitFor,within } from '@testing-lib
 import userEvent from '@testing-library/user-event';
 import { afterEach,describe,expect,it,vi } from 'vitest';
 import { App } from '../App';
-import type { ChatResult,ChatSnapshot } from '../../../shared/chat';
+import type { ChatMessage,ChatResult,ChatSnapshot } from '../../../shared/chat';
+import { MessageItem } from './MessageList';
 import { chatMock,mockProfile } from './test-helpers';
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 function deferred<T>(){let resolve!:(v:T)=>void,reject!:(e:unknown)=>void;const promise=new Promise<T>((r,no)=>{resolve=r;reject=no;});return{promise,resolve,reject};}
@@ -20,12 +21,84 @@ async function send(f:Awaited<ReturnType<typeof fixture>>,text='你好，布布'
   await f.user.type(f.input(),text);await f.user.click(screen.getByRole('button',{name:'发送消息'}));await waitFor(()=>expect(f.mock.api.send).toHaveBeenCalled());
 }
 describe('real React text-chat UI with an explicitly mocked bridge',()=>{
+  it.each(['pending','streaming','failed','stopped'] as const)('uses an empty assistant body consistent with its %s state',status=>{
+    const p=mockProfile(),now=new Date().toISOString();
+    const message:ChatMessage={id:crypto.randomUUID(),requestId:crypto.randomUUID(),runId:crypto.randomUUID(),role:'assistant',text:'',status,seq:1,createdAt:now,updatedAt:now,
+      recipient:{providerId:p.id,revision:p.revision,name:p.name,baseUrl:p.baseUrl,origin:new URL(p.baseUrl).origin,modelId:p.modelId},
+      ...(status==='failed'?{errorCode:'EMPTY_RESPONSE' as const}:status==='stopped'?{errorCode:'CANCELLED' as const}:{})};
+    render(<MessageItem message={message} persisted={true}/>);
+    if(status==='pending'||status==='streaming'){
+      expect(screen.getByText('正在等待可见文本…')).toBeTruthy();
+      expect(screen.getByRole('status').textContent).toBe(status==='pending'?'等待模型回复':'正在生成');
+    }else{
+      expect(screen.queryByText('正在等待可见文本…')).toBeNull();
+      expect(screen.getByText('本轮没有收到可显示的文本。')).toBeTruthy();
+      expect(screen.getByRole('status').textContent).toBe(status==='failed'?'本轮失败 · 已保存':'已停止 · 已保存');
+      expect(screen.getByText(status==='failed'?'模型没有返回可见文本。':'本轮已停止。')).toBeTruthy();
+    }
+    expect(screen.queryByRole('button',{name:'复制回答'})).toBeNull();
+  });
+  it.each([
+    {label:'stopped with text',status:'stopped' as const,text:'已收到的回答',errorCode:'CANCELLED' as const,expected:'已停止 · 部分回答'},
+    {label:'stopped with whitespace',status:'stopped' as const,text:' \n\t ',errorCode:'CANCELLED' as const,expected:'已停止'},
+    {label:'truncated without text',status:'failed' as const,text:'',errorCode:'OUTPUT_TRUNCATED' as const,expected:'回复已截断'},
+    {label:'truncated with whitespace',status:'failed' as const,text:' \n\t ',errorCode:'OUTPUT_TRUNCATED' as const,expected:'回复已截断'},
+    {label:'truncated with text',status:'failed' as const,text:'未完成的回答',errorCode:'OUTPUT_TRUNCATED' as const,expected:'回复已截断 · 部分回答'},
+  ].flatMap(entry=>[true,false].map(persisted=>({...entry,persisted}))))('reports $label accurately: persisted=$persisted',({status,text,errorCode,expected,persisted})=>{
+    const p=mockProfile(),now=new Date().toISOString();
+    const message:ChatMessage={id:crypto.randomUUID(),requestId:crypto.randomUUID(),runId:crypto.randomUUID(),role:'assistant',text,status,errorCode,seq:1,createdAt:now,updatedAt:now,
+      recipient:{providerId:p.id,revision:p.revision,name:p.name,baseUrl:p.baseUrl,origin:new URL(p.baseUrl).origin,modelId:p.modelId}};
+    render(<MessageItem message={message} persisted={persisted}/>);
+    expect(screen.getByRole('status').textContent).toBe(expected+(persisted?' · 已保存':' · 尚未保存'));
+    expect(screen.queryByText('正在等待可见文本…')).toBeNull();
+    expect(screen.getByText(errorCode==='CANCELLED'?/本轮已停止。/:/回答因输出预算耗尽而截断/)).toBeTruthy();
+    if(text.trim())expect(screen.getByRole('button',{name:'复制回答'})).toBeTruthy();
+    else{expect(screen.getByText('本轮没有收到可显示的文本。')).toBeTruthy();expect(screen.queryByRole('button',{name:'复制回答'})).toBeNull();}
+  });
+  it('formats a streamed long answer safely and copies code or the exact whole answer without another send',async()=>{
+    const f=await fixture(),write=vi.spyOn(navigator.clipboard,'writeText').mockResolvedValue(undefined);
+    await send(f);
+    const text='## 一个清晰的方案\n\n先 **确认目标**，再继续。\n\n- 保留原文\n- 不执行工具\n\n```ts\nconst title = "你好😀";\n```\n\n<img src="https://private.example/pixel">';
+    await act(async()=>f.mock.text(text));
+    expect(screen.getByRole('heading',{name:'一个清晰的方案'})).toBeTruthy();
+    expect(document.querySelector('img,script')).toBeNull();expect(screen.queryByRole('button',{name:'复制回答'})).toBeNull();
+    await f.user.click(screen.getByRole('button',{name:'复制代码'}));expect(write).toHaveBeenLastCalledWith('const title = "你好😀";');
+    await act(async()=>f.mock.end());await f.user.click(screen.getByRole('button',{name:'复制回答'}));expect(write).toHaveBeenLastCalledWith(text);
+    expect(f.mock.api.send).toHaveBeenCalledOnce();expect(f.mock.api.subscribe).toHaveBeenCalledOnce();expect(f.mock.api.cancel).not.toHaveBeenCalled();
+  });
+  it('separates current selection from the recipient of an existing reply in the inspector',async()=>{
+    const f=await fixture();await send(f);await act(async()=>{f.mock.text('已回答');f.mock.end();});
+    await f.user.selectOptions(screen.getByRole('combobox',{name:'聊天模型'}),f.other.id);
+    await f.user.click(screen.getByRole('button',{name:'展开面板'}));
+    const panel=screen.getByRole('complementary',{name:'对话信息'});
+    const current=within(panel).getByRole('heading',{name:'当前发送模型'}).parentElement!;
+    const previous=within(panel).getByRole('heading',{name:'最近回复来源'}).parentElement!;
+    expect(current.textContent).toContain(f.other.name);expect(previous.textContent).toContain(f.p.name);
+    expect(panel.textContent).toContain('明文 JSON');expect(screen.queryByText('三步开始使用')).toBeNull();
+    expect(f.mock.api.send).toHaveBeenCalledOnce();expect(f.mock.api.subscribe).toHaveBeenCalledOnce();
+  });
+  it('uses the existing session timestamps and message counts without requesting message previews',async()=>{
+    const mock=chatMock(),created=await mock.api.create();if(!created.ok)throw Error();
+    const saved=mock.data.get(created.value.conversation.id)!;
+    saved.conversation.title='一个特别长的会话标题，仍然能够完整地被辅助技术读取';
+    const f=await fixture(mock);
+    const button=screen.getByRole('button',{name:'打开会话 '+saved.conversation.title});
+    expect(button.getAttribute('aria-current')).toBe('true');expect(within(button).getByTitle(saved.conversation.title)).toBeTruthy();
+    expect(within(button).getByText('0 条消息')).toBeTruthy();expect(button.querySelector('time')?.dateTime).toBe(saved.conversation.updatedAt);
+    expect(f.mock.api.snapshot).not.toHaveBeenCalled();expect(f.mock.api.send).not.toHaveBeenCalled();
+  });
+  it('names length truncation as a partial persisted answer, never a completed response',async()=>{
+    const f=await fixture();await send(f);await act(async()=>{f.mock.text('未完成的文字');f.mock.end('failed',true,'OUTPUT_TRUNCATED');});
+    expect(screen.getByText('回复已截断 · 部分回答 · 已保存')).toBeTruthy();expect(screen.queryByText('回答完成 · 已保存')).toBeNull();
+    expect(screen.getByText(/回答因输出预算耗尽而截断/)).toBeTruthy();expect(f.mock.api.send).toHaveBeenCalledOnce();
+  });
   it.each(['failed-result','rejected-invoke'] as const)('retains a stoppable started run after a %s acknowledgement, then accepts only the real terminal',async(kind)=>{
     const f=await fixture(),ack=deferred<ChatResult<{requestId:string;runId:string}>>(),original=f.mock.api.send.getMockImplementation()!;
     f.mock.api.send.mockImplementationOnce(async input=>{await original(input);return ack.promise;});
     await send(f);expect(screen.getByRole('button',{name:'停止生成'})).toHaveProperty('disabled',false);
     await act(async()=>{if(kind==='failed-result')ack.resolve({ok:false,error:{code:'NETWORK_FAILED'}});else ack.reject(new Error('private IPC detail'));});
     expect(screen.getByRole('button',{name:'停止生成'})).toHaveProperty('disabled',false);expect(f.input().readOnly).toBe(true);
+    expect(screen.getByRole('alert').textContent).toContain('生成状态同步异常，正在核实');
     expect(f.mock.api.snapshot).toHaveBeenCalledOnce();expect(f.mock.api.send).toHaveBeenCalledOnce();expect(f.mock.api.subscribe).toHaveBeenCalledOnce();
     await act(async()=>f.mock.text('Main 仍在生成'));expect(screen.getByText('Main 仍在生成')).toBeTruthy();
     if(kind==='failed-result'){await act(async()=>f.mock.end());expect(screen.getByText('回答完成 · 已保存')).toBeTruthy();}
@@ -91,7 +164,7 @@ describe('real React text-chat UI with an explicitly mocked bridge',()=>{
     expect(screen.queryByText('回答完成 · 已保存')).toBeNull();
     await act(async()=>f.mock.text('<script>not executable</script> 你好😀'));
     expect(screen.getByText('<script>not executable</script> 你好😀')).toBeTruthy();expect(document.querySelector('script')).toBeNull();
-    await f.user.click(screen.getByRole('button',{name:'收起面板'}));await f.user.click(screen.getByRole('button',{name:'展开面板'}));
+    await f.user.click(screen.getByRole('button',{name:'展开面板'}));await f.user.click(screen.getByRole('button',{name:'收起面板'}));
     expect(f.mock.api.subscribe).toHaveBeenCalledOnce();expect(f.mock.api.cancel).not.toHaveBeenCalled();
     await act(async()=>f.mock.end());expect(screen.getByText('回答完成 · 已保存')).toBeTruthy();expect(f.input().readOnly).toBe(false);
     expect(screen.getByRole('button',{name:'打开会话 你好，布布'})).toBeTruthy();
@@ -155,7 +228,7 @@ describe('real React text-chat UI with an explicitly mocked bridge',()=>{
     await waitFor(()=>expect(f.mock.api.send).toHaveBeenCalledTimes(2));expect(f.mock.api.send.mock.calls[1]?.[0].accepted).toBe(true);await act(async()=>f.mock.end('stopped'));
   });
   it('does not remount subscriptions under StrictMode or when draft, model state and panel state rerender',async()=>{
-    const f=await fixture(chatMock(),true);await send(f);await f.user.click(screen.getByRole('button',{name:'收起面板'}));
+    const f=await fixture(chatMock(),true);await send(f);await f.user.click(screen.getByRole('button',{name:'展开面板'}));
     await act(async()=>f.mock.text('text'));expect(f.mock.api.subscribe).toHaveBeenCalledOnce();expect(f.mock.api.unsubscribe).not.toHaveBeenCalled();await act(async()=>f.mock.end());
   });
   it('retains the error code on admission failure and does not clear unsent input',async()=>{
@@ -183,7 +256,8 @@ describe('real React text-chat UI with an explicitly mocked bridge',()=>{
   });
   it('bounds UTF-8 input bytes and keeps file, directory and Agent capabilities disabled',async()=>{
     const f=await fixture();fireEvent.change(f.input(),{target:{value:'中'.repeat(6000)}});expect(screen.getByText('输入超过 16 KiB，请缩短消息。')).toBeTruthy();expect(screen.getByRole('button',{name:'发送消息'})).toHaveProperty('disabled',true);
-    expect(screen.getByRole('button',{name:'添加文件，后续开放'})).toHaveProperty('disabled',true);expect(screen.getByRole('button',{name:'选择本地目录（后续开放）'})).toHaveProperty('disabled',true);
+    expect(screen.queryByRole('button',{name:'添加文件，后续开放'})).toBeNull();expect(screen.queryByRole('button',{name:'选择本地目录（后续开放）'})).toBeNull();
+    expect(screen.getByText('文件与任务功能后续开放。')).toBeTruthy();
     expect(f.mock.api.prepareSend).not.toHaveBeenCalled();
   });
 });

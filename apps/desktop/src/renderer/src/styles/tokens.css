@@ -8,6 +8,7 @@
   --bubu-muted: #79665B;
   --bubu-accent: #9B654A;
   --bubu-accent-hover: #865139;
+  --bubu-focus-ring: #806B5D;
   --bubu-border: #EADED4;
   --bubu-divider: #F0E8E0;
   --bubu-success: #4C916D;
@@ -38,4 +39,6 @@
   --bubu-panel-wide: 354px;
   --bubu-panel-medium: 318px;
   --bubu-panel-compact: 296px;
+  --bubu-chat-reading-width: 760px;
+  --bubu-chat-panel-width: 264px;
 }
