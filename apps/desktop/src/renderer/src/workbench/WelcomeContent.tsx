@@ -1,45 +1,27 @@
 import { Icon } from '../components/Icon';
 import type { IconName } from '../components/Icon';
-import { MascotArtwork } from '../components/MascotArtwork';
 import styles from './WelcomeContent.module.css';
 
-const examples: { title: string; description: string; icon: IconName }[] = [
-  { title: '整理下载文件夹', description: '按类型分类，先预览方案再执行', icon: 'folder' },
-  { title: '找一份技术笔记', description: '在授权的目录中搜索文件', icon: 'search' },
-  { title: '总结本地资料', description: '读取 Markdown 和文本内容', icon: 'document' },
+const examples: { title: string; text: string; icon: IconName }[] = [
+  { title: '整理一段思路', text: '帮我把一段零散的想法整理清楚。', icon: 'edit' },
+  { title: '解释一段代码', text: '用一个简单的例子解释 async 和 await。', icon: 'document' },
+  { title: '写一封清晰的邮件', text: '帮我写一封简洁自然的沟通邮件。', icon: 'message' },
 ];
 
-function WelcomeHero() {
-  return (
-    <section className={styles.hero} aria-labelledby="welcome-title">
-      <div className={styles.heroCopy}>
-        <p className={styles.eyebrow}><Icon name="heart" />一二布布 · 陪伴式文件助理</p>
-        <h2 id="welcome-title">你好呀，<br />我是 <span>布布 AI</span>！</h2>
-        <p>从一个问题，开始和布布对话。<br />文件搜索与整理功能后续开放。</p>
-      </div>
-      <div className={styles.artworkSlot}><MascotArtwork size="hero" /></div>
-    </section>
-  );
-}
-
-export function WelcomeContent() {
-  return (
-    <div className={styles.content}>
-      <WelcomeHero />
-      <section className={styles.examples} aria-labelledby="examples-title">
-        <h3 id="examples-title">未来可以这样使用</h3>
-        <ul className={styles.exampleList}>
-          {examples.map(({ title, description, icon }) => (
-            <li key={title} className={styles.example}>
-              <span className={styles.exampleIcon}><Icon name={icon} /></span>
-              <h4>{title}</h4>
-              <p>{description}</p>
-              <span className={styles.availability}>后续开放</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-      <p className={styles.privacyNote}><Icon name="shield" /><span>纯文本聊天只需选择已验证模型，无需目录授权。当前不会读取或修改本地文件。</span></p>
-    </div>
-  );
+export function WelcomeContent({ ready, loading, failed, onOpenSettings, onPrompt }: {
+  ready: boolean; loading: boolean; failed: boolean; onOpenSettings: () => void; onPrompt: (text: string) => void;
+}) {
+  return <div className={styles.content}>
+    <p className={styles.intro}>Bubu AI · 让思路慢慢清晰</p>
+    <h2>今天想聊些什么？</h2>
+    <p className={styles.description}>写作、理解、推敲想法。先从你最在意的那件事开始。</p>
+    {loading ? <p className={styles.setup} role="status">正在读取模型配置…</p> : ready ? <ul className={styles.examples} aria-label="对话建议">
+      {examples.map(example => <li key={example.title}><button type="button" onClick={() => onPrompt(example.text)}>
+        <Icon name={example.icon} />{example.title}
+      </button></li>)}
+    </ul> : failed ? <p className={styles.setup} role="status">暂时无法确认模型配置，请在设置中重新读取。</p> : <div className={styles.setup}>
+      <p>还没有选中可用模型，先在设置中配置、验证并选择。</p>
+      <button type="button" onClick={onOpenSettings}>添加模型</button>
+    </div>}
+  </div>;
 }

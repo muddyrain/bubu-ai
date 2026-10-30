@@ -31,7 +31,7 @@ export function Sidebar({ view, workbenchRef, workbenchDisabled, onOpenSettings,
             </button></li>
             <li><button type="button" className={styles.navButton} aria-label="新对话" title="新对话" disabled={view==='settings'} onClick={onNew}><Icon name="plus"/><span className={styles.navLabel}>新对话</span></button></li>
             <li><button type="button" className={styles.navButton} aria-label="最近会话" title="最近会话" disabled={view==='settings'} onClick={onSessions}><Icon name="message"/><span className={styles.navLabel}>最近会话</span></button></li>
-            {unavailableEntries.map(({ label, icon }) => (
+            {view === 'settings' && unavailableEntries.map(({ label, icon }) => (
               <li key={label}>
                 <button type="button" className={styles.navButton} disabled title={`${label} · 后续开放`}
                   aria-label={`${label}，后续开放`} aria-describedby="navigation-unavailable-note">
@@ -40,17 +40,17 @@ export function Sidebar({ view, workbenchRef, workbenchDisabled, onOpenSettings,
                 </button>
               </li>
             ))}
-            <li><button type="button" className={view === 'settings' ? styles.navCurrent : styles.navButton}
+            {view === 'settings' && <li><button type="button" className={styles.navCurrent}
               title="设置" aria-label="设置" aria-current={view === 'settings' ? 'page' : undefined} onClick={onOpenSettings}>
               <Icon name="settings" /><span className={styles.navLabel}>设置</span>
-            </button></li>
+            </button></li>}
           </ul>
         </nav>
         <div hidden={view === 'settings'} className={styles.sessionEmpty}>{sessions}</div>
-        <span id="navigation-unavailable-note" className={styles.navLabel}>文件与任务功能后续开放。</span>
+        <span id="navigation-unavailable-note" className={view === 'settings' ? styles.navLabel : styles.unavailableNote}>文件与任务功能后续开放。</span>
       </div>
       {view === 'settings' ? <div className={styles.settingsSidebarNote}><Icon name="shield" /><div><strong>本地优先</strong><p>连接与数据，都由你决定。</p></div></div> : <>
-        <div className={styles.sidebarCompanion}><Icon name="heart" /><p>和布布一起<br />把文件变得井井有条</p></div>
+        <button type="button" className={styles.navButton} title="设置" aria-label="设置" onClick={onOpenSettings}><Icon name="settings" /><span className={styles.navLabel}>设置</span></button>
         <p className={styles.sidebarFooter}>本地优先 · 每一步由你掌握</p>
       </>}
     </aside>

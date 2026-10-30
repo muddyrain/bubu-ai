@@ -1,5 +1,5 @@
 .stage {
-  --bubu-sidebar-width: var(--bubu-sidebar-expanded);
+  --bubu-sidebar-width: 224px;
   --bubu-panel-width: var(--bubu-panel-wide);
   block-size: 100%;
   inline-size: 100%;
@@ -8,7 +8,7 @@
 
 .frame {
   display: grid;
-  grid-template-rows: var(--bubu-header-height) minmax(0, 1fr);
+  grid-template-rows: 44px minmax(0, 1fr);
   block-size: 100%;
   overflow: hidden;
   background: var(--bubu-surface);
@@ -17,14 +17,14 @@
 .header {
   display: flex;
   align-items: center;
-  gap: var(--bubu-space-6);
+  gap: 16px;
   min-inline-size: 0;
   padding-inline: var(--bubu-space-5);
   border-block-end: 1px solid var(--bubu-divider);
 }
 
 .brand { display: flex; align-items: center; gap: var(--bubu-space-3); flex-shrink: 0; }
-.brand strong { font-size: 20px; letter-spacing: -0.4px; }
+.brand strong { font-size: 17px; font-weight: 650; letter-spacing: -0.4px; }
 .brandTag, .modelStatus {
   display: inline-flex;
   align-items: center;
@@ -52,30 +52,34 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: var(--bubu-space-4);
+  gap: 10px;
   min-block-size: 0;
   min-inline-size: 0;
-  padding: var(--bubu-space-5) var(--bubu-space-3) var(--bubu-space-4);
-  background: linear-gradient(var(--bubu-surface), var(--bubu-surface-alt));
+  padding: 14px 12px 16px;
+  background: var(--bubu-surface-alt);
   border-inline-end: 1px solid var(--bubu-border);
 }
-.sidebarScroll { min-block-size: 0; overflow-y: auto; }
-.sidebarLabel { padding: 0 var(--bubu-space-3) var(--bubu-space-2); font-size: var(--bubu-font-small); color: var(--bubu-muted); }
+.sidebarScroll { flex: 1; min-block-size: 0; overflow-y: auto; }
+.sidebarLabel { display: none; padding: 0 var(--bubu-space-3) var(--bubu-space-2); font-size: var(--bubu-font-small); color: var(--bubu-muted); }
 .navList { margin: 0; padding: 0; list-style: none; }
 .navButton, .navCurrent {
   display: flex;
   align-items: center;
   gap: var(--bubu-space-2);
   inline-size: 100%;
-  min-block-size: 43px;
+  min-block-size: 38px;
   padding: var(--bubu-space-2) var(--bubu-space-3);
   border: 0;
-  border-radius: var(--bubu-radius-control);
+  border-radius: 7px;
   text-align: start;
   white-space: nowrap;
+  font-size: 13px;
 }
-.navCurrent { background: var(--bubu-surface-soft); color: var(--bubu-accent-hover); font-weight: 650; }
+.navCurrent { background: transparent; color: var(--bubu-text); font-weight: 500; }
 .navButton { background: transparent; color: var(--bubu-muted); }
+.navButton:hover:enabled,.navCurrent:hover:enabled { background:var(--bubu-surface-soft); }
+.navButton:disabled,.navCurrent:disabled { color:var(--bubu-muted); }
+.navButton:focus-visible,.navCurrent:focus-visible { outline:2px solid var(--bubu-focus-ring); outline-offset:-3px; }
 .navBadge { margin-inline-start: auto; font-size: var(--bubu-font-small); }
 .sessionEmpty { display: grid; gap: var(--bubu-space-2); margin-block-start: var(--bubu-space-5); padding: var(--bubu-space-4) var(--bubu-space-3); border-block-start: 1px solid var(--bubu-divider); font-size: var(--bubu-font-small); color: var(--bubu-muted); }
 .sessionEmpty h2 { font-size: inherit; font-weight: 600; }
@@ -84,6 +88,7 @@
 .sidebarFooter { font-size: var(--bubu-font-small); color: var(--bubu-muted); text-align: center; }
 
 .workspace {
+  --bubu-chat-inset: 32px;
   display: grid;
   grid-template-rows: var(--bubu-pane-header-height) minmax(0, 1fr) auto;
   min-inline-size: 0;
@@ -96,7 +101,8 @@
 .panelToggle { display: inline-flex; align-items: center; justify-content: center; gap: var(--bubu-space-2); min-block-size: 36px; flex-shrink: 0; padding: var(--bubu-space-1) var(--bubu-space-3); border: 1px solid var(--bubu-border); border-radius: var(--bubu-radius-control); background: var(--bubu-surface); color: var(--bubu-accent); font-size: var(--bubu-font-small); transition: background 150ms ease-out; }
 .panelToggle:hover { background: var(--bubu-surface-soft); }
 .conversation { min-inline-size: 0; min-block-size: 0; overflow-y: auto; padding: var(--bubu-space-6) var(--bubu-space-8); }
-.conversation:focus-visible, .contextScroll:focus-visible { outline-offset: -3px; }
+.conversation:focus-visible, .contextScroll:focus-visible { outline: 2px solid var(--bubu-focus-ring); outline-offset: -3px; }
+.panelToggle:focus-visible,.contextClose:focus-visible,.setupButton:focus-visible { outline:2px solid var(--bubu-focus-ring); outline-offset:-3px; }
 
 .composerArea { padding: var(--bubu-space-3) var(--bubu-space-5) var(--bubu-space-4); border-block-start: 1px solid var(--bubu-divider); }
 .composer { max-inline-size: 772px; margin-inline: auto; border: 1px solid var(--bubu-border); border-radius: var(--bubu-radius-card); background: var(--bubu-white); padding: var(--bubu-space-3); }
@@ -128,30 +134,61 @@
 .contextCompanion { display: flex; flex-shrink: 0; flex-direction: column; align-items: center; gap: var(--bubu-space-2); padding: var(--bubu-space-4); background: var(--bubu-surface-soft); border-radius: var(--bubu-radius-card); font-size: var(--bubu-font-small); color: var(--bubu-text); text-align: center; }
 
 @media (width < 1250px) {
-  .stage { --bubu-panel-width: var(--bubu-panel-medium); }
+  .stage { --bubu-sidebar-width:216px; --bubu-panel-width: var(--bubu-panel-medium); }
+  .workspace { --bubu-chat-inset:28px; }
   .brandTag { display: none; }
   .conversation { padding: var(--bubu-space-5); }
   .header { gap: var(--bubu-space-4); }
 }
 
 @media (width < 1060px) {
-  .stage { --bubu-sidebar-width: var(--bubu-sidebar-compact); --bubu-panel-width: var(--bubu-panel-compact); }
-  .sidebar { padding-inline: var(--bubu-space-2); }
-  .navButton, .navCurrent { justify-content: center; padding-inline: var(--bubu-space-2); }
-  .navLabel { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .sidebarLabel, .navBadge, .sessionEmpty, .sidebarCompanion, .sidebarFooter { display: none; }
+  .stage { --bubu-sidebar-width:208px; --bubu-panel-width: var(--bubu-panel-compact); }
+  .workspace { --bubu-chat-inset:24px; }
+  .navButton, .navCurrent { justify-content:flex-start; padding-inline:10px; }
   .breadcrumb { display: none; }
 }
 
 .sidebar[data-view='settings'] { background: var(--bubu-surface-alt); }
-.sidebar[data-view='settings'] .navButton, .sidebar[data-view='settings'] .navCurrent { border-radius: 6px; }
 .settingsSidebarNote { display: grid; gap: 10px; margin-block-start: auto; padding: 20px 14px 0; font-size: 12px; line-height: 1.8; color: var(--bubu-muted); }
 .settingsSidebarNote strong { color: var(--bubu-text); font-weight: 500; }
 .settingsSidebarNote svg { inline-size: 16px; block-size: 16px; }
-@media (width < 1250px) {
-  .layout[data-view='settings'] { --bubu-sidebar-width: var(--bubu-sidebar-compact); }
-  .sidebar[data-view='settings'] { padding-inline: var(--bubu-space-2); }
-  .sidebar[data-view='settings'] .navButton, .sidebar[data-view='settings'] .navCurrent { justify-content: center; padding-inline: var(--bubu-space-2); }
-  .sidebar[data-view='settings'] .navLabel { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .sidebar[data-view='settings'] .sidebarLabel, .sidebar[data-view='settings'] .navBadge, .settingsSidebarNote { display: none; }
+
+/* Shared application chrome; page contents keep their own hierarchy. */
+.brandTag,
+.header[data-view='workbench'] .breadcrumb,
+.header[data-view='workbench'] .modelStatus { display:none; }
+.layout[data-view='workbench'] { --bubu-panel-width:var(--bubu-chat-panel-width); --bubu-pane-header-height:52px; }
+.sidebar[data-view='workbench'] .sessionEmpty { padding:0; margin-block-start:12px; border:0; }
+.sidebar[data-view='workbench'] .sidebarFooter { text-align:start; padding-inline:10px; line-height:1.8; }
+.unavailableNote { display:block; font-size:12px; color:var(--bubu-muted); margin:18px 10px 0; line-height:1.8; }
+.contextClose { display:grid; place-items:center; inline-size:36px; block-size:36px; border:0; border-radius:7px; background:transparent; }
+.contextClose:hover { background:var(--bubu-surface-soft); }
+.contextScroll { gap:0; padding:20px; }
+.contextSection { flex-shrink:0; min-inline-size:0; padding-block-end:24px; margin-block-end:22px; border-block-end:1px solid var(--bubu-border); overflow-wrap:anywhere; }
+.contextSection:last-child { border:0; margin:0; }
+.contextSection h3 { display:flex; align-items:center; gap:7px; color:var(--bubu-muted); font-size:12px; font-weight:500; margin-block-end:12px; }
+.contextSection strong { display:block; font-size:14px; font-weight:600; }
+.contextSection p { font-size:12px; line-height:1.85; color:var(--bubu-muted); margin-block-start:7px; }
+.contextSection dl { display:grid; grid-template-columns:64px minmax(0,1fr); gap:10px; font-size:12px; line-height:1.8; margin:0; }
+.contextSection dt { color:var(--bubu-muted); }
+.contextSection dd { margin:0; }
+.chatHeader { border-block-end:0; padding-inline:28px; }
+.chatHeading { gap:8px; }
+.chatHeading h1 { font-weight:550; }
+.panelToggle { border:0; border-radius:7px; color:var(--bubu-muted); padding-inline:9px; }
+.conversation { padding:20px 24px; scrollbar-gutter:stable both-edges; }
+@media(width<1250px) {
+  .layout[data-view='workbench'][data-panel-open='true'] { --bubu-sidebar-width:64px; }
+  .layout[data-view='workbench'][data-panel-open='true'] .sidebar { padding-inline:8px; }
+  .layout[data-view='workbench'][data-panel-open='true'] .navButton,
+  .layout[data-view='workbench'][data-panel-open='true'] .navCurrent { justify-content:center; padding-inline:6px; }
+  .layout[data-view='workbench'][data-panel-open='true'] .navLabel { position:absolute; inline-size:1px; block-size:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+  .layout[data-view='workbench'][data-panel-open='true'] .sessionEmpty,
+  .layout[data-view='workbench'][data-panel-open='true'] .sidebarFooter,
+  .layout[data-view='workbench'][data-panel-open='true'] .unavailableNote { display:none; }
+}
+@media(width<1060px) {
+  .layout[data-view='workbench'] { --bubu-panel-width:248px; }
+  .chatHeader { padding-inline:22px; }
+  .panelToggle { font-size:0; inline-size:36px; padding:0; }
 }

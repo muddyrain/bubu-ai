@@ -1,6 +1,6 @@
 # Bubu AI V0.1 架构总览
 
-> **状态：Issue #1/#3/#5 已合并；Issue #6 普通文本聊天已通过 Stage A/B 源码 Review、P1 Close-out 和 Owner 真实 macOS Electron 验收，待 GitHub 最终 Review。** 人工验收范围见 [AI 对话](../features/chat.md)；文件/Agent 模块仍 planned。
+> **状态：Issue #1/#3/#5/#6 已合并；Issue #9 Renderer 聊天 UX 本地实现，待源码与视觉 Review。** 人工验收范围见 [AI 对话](../features/chat.md)；文件/Agent 模块仍 planned。
 
 ## 技术目标
 

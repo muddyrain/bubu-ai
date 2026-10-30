@@ -1,6 +1,6 @@
 # Bubu AI · Local-first AI File Workspace
 
-> **当前状态：Issue #1/#3/#5 已合并；Issue #6 普通文本流式聊天已通过 Stage A/B 源码 Review、P1 Close-out 及 Owner 的真实 macOS Electron 验收，待 GitHub 最终 Code Review。** 文件和 Agent 仍未开放。
+> **当前状态：Issue #1/#3/#5/#6 已合并；Issue #9 方案 A「对话优先」已完成源码 Review 和发布准备检查，Git 发布待 Owner 授权。** 文件和 Agent 仍未开放；Issue #9 无头截图只使用 Mock，真实 Electron 验收范围见下文。
 
 Bubu AI 是以「一二布布」为情感化交互主题的桌面 AI 工作台，通过自然语言搜索、读取、理解并整理**用户主动授权的本地文件**。
 
@@ -25,7 +25,7 @@ Bubu AI 是以「一二布布」为情感化交互主题的桌面 AI 工作台�
 
 工程使用 pnpm workspace，唯一应用在 `apps/desktop/`。Electron Main、sandbox Preload 和 React Renderer 分离，通过 electron-vite 构建。模型检测和聊天流只由 Main 发起，不包含 Agent 或文件业务。
 
-Renderer 按 Workbench V1.2 拆为 Header、Sidebar、ChatWorkspace、ContextPanel 和独立素材槽位。工作台右栏支持收起/恢复；通过「添加模型」或侧栏「设置」进入独立 Settings 主页面，返回后保留右栏开合状态。Settings 采用方案 A 的纵向模型列表与横向设置行；检测/删除使用模态确认，保存操作仅在有修改时出现。聊天现可新建/切换/删除本地会话、选择已验证模型、发送纯文本、查看流式回答和停止。Enter 发送、Shift+Enter 换行，中文输入法合成期间不发送；阅读旧消息时不强制滚到底部，可主动回到最新。目录授权、附件和文件/任务导航仍禁用，三个文件用法示例仍是后续能力说明。角色保持中性占位。
+Renderer 按 Workbench V1.2 拆为 Header、Sidebar、ChatWorkspace、ContextPanel 和独立素材槽位。工作台右栏支持收起/恢复；通过「添加模型」或侧栏「设置」进入独立 Settings 主页面，返回后保留右栏开合状态。Settings 采用方案 A 的纵向模型列表与横向设置行；检测/删除使用模态确认，保存操作仅在有修改时出现。聊天现可新建/切换/删除本地会话、选择已验证模型、发送纯文本、查看流式回答和停止。Enter 发送、Shift+Enter 换行，中文输入法合成期间不发送；阅读旧消息时不强制滚到底部，可主动回到最新。目录授权、附件和文件/任务能力仍未开放；欢迎页的三项文本建议只填入草稿，不自动发送。正式角色素材尚未接入，聊天页不使用替代插画。
 
 模型配置支持新建、编辑、删除、启用、选择和重启恢复；只有当前配置版本通过连接检测后才能选中。保存不联网，连接测试和工具能力检测分别确认接收方、固定测试消息和可能产生的 API 用量后才发起；不自动重试。工具探针只检查回复，不执行工具。仅支持公网域名 HTTPS/443 的 Chat Completions，使用 `max_completion_tokens: 64`；不支持该参数的端点会报告协议错误，不猜测模型能力。
 
@@ -33,9 +33,9 @@ API Key 仅在输入时短暂存在密码框，并经具名 IPC 交给 Main。�
 
 Issue #6 阶段 A 提供 `ChatService`、版本化会话存储、受限 SSE 和具名 `chat.*` IPC，阶段 B 通过 `useChat` 与纯文本组件接入。准备发送不联网、不写消息，发送先持久化占位再请求；跨配置历史绑定一次性许可，模态框明确接收方、消息类别/数量/字节和用量费用；停止实际 Abort，最终提交阶段明确返回 committing。离开工作台、切换/删除活动会话须确认，等待真实终态后继续。**聊天正文以明文 JSON 保存在 userData/chat/conversations 中**，开发态为 development/chat/conversations；这与 API Key 的 safeStorage 加密不同。草稿仅在 Renderer 内存按会话保留，不承诺重启恢复。没有自动重试、工具执行或自动迁移。配额、事件握手、断流和崩溃恢复边界见 [AI 对话](docs/features/chat.md)。
 
-布局以 renderer CSS 视口为准：1440px 下左右栏为 216/354px，1100px 为 216/318px，1024px 为 70/296px。中央和右栏分别滚动，Composer 留在中央底部；中央变窄时 Hero 上下排，三项示例始终保留。本期最小目标为 1024×720，不提供更窄窗口的抽屉。
+聊天布局以 Renderer CSS 视口为准：1440/1100/1024px 下侧栏为 224/216/208px，右栏按需展开为 264/264/248px；1250px 以下展开右栏时暂将侧栏收为 64px 图标栏，并保留最近会话模态入口。正文最大阅读宽度 760px，消息与右栏分别滚动，Composer 始终留在中央底部。主验收为 1100×800，最小目标为 1024×720，不设计更窄窗口的新导航系统。
 
-Renderer 直接铺满 Electron 原生窗口客户区，不绘制第二层窗口边框、圆角或阴影。Settings 独立于工作台断点，在 1250px 以下将主导航收为 70px 图标栏；1440/1100/1024 三档的配置列分别为 224/224/208px，详情使用剩余空间。
+Renderer 直接铺满 Electron 原生窗口客户区，不绘制第二层窗口边框、圆角或阴影。Settings 与工作台共用全局侧栏规则，1440/1100/1024px 下宽度均为 224/216/208px，不因进入设置页自动收成图标栏，也不受工作台右栏开合状态影响。Settings 保留紧凑的配置列表与详情双栏，详情使用剩余空间。
 
 环境要求：Node.js `>=22.22.3 <23`、pnpm `10.33.0`。`package.json` 固定直接依赖版本，`pnpm-lock.yaml` 固定完整依赖树；仓库 `.npmrc` 使用公共 npm registry，不修改系统配置。
 
@@ -73,7 +73,11 @@ Issue #5 的 [Owner 验收记录](https://github.com/muddyrain/bubu-ai/issues/5#
 
 Issue #6 的 [Stage C Owner 验收记录](https://github.com/muddyrain/bubu-ai/issues/6#issuecomment-6486475136) 确认真实模型回答、两轮连续流式与上下文、停止生成、会话切换及重启恢复、中文 IME/Enter/Shift+Enter/滚动，以及接收方、跨供应商历史确认和异常反馈共 6 项通过。这些是 Owner 的人工结果；自动化与隔离无头预览仍全部使用 Mock。单张实机截图只证明其中可见状态，不替代其余操作记录。Windows、其他输入法及供应商 SSE 兼容性、Keychain 异常和断电恢复仍未全面实测；停止不保证供应商已产生的用量免费。
 
-当前主分支为 `master`；Issue #6 的唯一开发分支是 `feat/6-chat-streaming`，以已合并 Issue #5 的 `master`（`c875f2c`）为基线。Owner 已授权 Commit、Push 和创建面向 `master` 的 PR，未授权合并或删除分支。
+Issue #9 采用对话优先布局：右栏默认收起，按需查看发送模型、最近回复来源及明文记录状态；中小窗口展开右栏时临时折叠会话侧栏，「最近会话」仍可键盘访问。欢迎页只提供文本提问建议或模型配置入口，不自动发送。用户消息使用气泡，助手正文支持有限的安全排版，没有新增 Markdown 依赖。用户主动点击后直接复制整条回答或代码正文，写入失败或 API 不可用时才提供手动复制降级。Main 仅向当前存活、聚焦且身份和完整页面 URL 均通过校验的可信主窗口主 Frame 授予 `clipboard-sanitized-write`；剪贴板读取、子框架及其他权限仍默认拒绝。该授权针对可信页面，不限定某个复制按钮、单次用户手势或纯文本格式；没有新增剪贴板 IPC。
+
+Owner 已在真实 macOS Electron 中确认 Issue #9 回答与代码一键复制正常，不再弹出手动复制窗口；自动化和无头预览仍使用 Mock，不触碰真实系统剪贴板。Issue #9 真实聊天 B 组尚未完成本版本复验，不能用 Issue #6 的历史验收替代，也不能据此宣称新版全部实机验收通过。文本排版与聊天契约的其他限制见 [AI 对话](docs/features/chat.md)。
+
+当前主分支为 `master`；Issue #9 唯一开发分支为 `feat/9-chat-ux`，基于 PR #8 合并提交 `b7870dc`。提交、推送和创建 PR 需 Owner 单独明确授权，不自动合并；自动化检查不启动 GUI 或调用真实模型。
 
 ## 角色素材
 

@@ -15,5 +15,6 @@
 .button.danger:hover { background: #86302c; }
 .button, .close { transition: background-color 160ms ease-out, border-color 160ms ease-out; }
 .button:active, .close:active { transform: translateY(1px); }
-.dialog :focus-visible { outline: 2px solid var(--bubu-accent); outline-offset: 3px; }
+.button:focus-visible, .close:focus-visible { outline: 2px solid var(--bubu-focus-ring); outline-offset: -3px; }
+.primary:focus-visible, .danger:focus-visible { outline-color: var(--bubu-surface); }
 @media (prefers-reduced-motion: reduce) { .button, .close { transition: none; } .button:active, .close:active { transform: none; } }
